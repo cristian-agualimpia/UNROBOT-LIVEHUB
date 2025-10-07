@@ -2,8 +2,6 @@ package com.unrobot_livehub.registro_service.controller;
 
 import java.util.List;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.unrobot_livehub.registro_service.dto.EquipoDTO;
 import com.unrobot_livehub.registro_service.service.EquipoService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/equipos")

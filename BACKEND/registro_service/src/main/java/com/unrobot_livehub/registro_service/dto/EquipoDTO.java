@@ -1,7 +1,7 @@
 package com.unrobot_livehub.registro_service.dto;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class EquipoDTO {
     private Long id;

@@ -1,6 +1,6 @@
 package com.unrobot_livehub.registro_service.dto;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 public class InstitucionDTO {
     private Long id;
