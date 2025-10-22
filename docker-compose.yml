@@ -1,17 +1,18 @@
 version: '3.8'
+
 services:
   postgres-db:
     image: postgres:13
     container_name: unrobot-postgres
     environment:
-      POSTGRES_DB: robotics_platform
-      POSTGRES_USER: admin          
-      POSTGRES_PASSWORD: password   
+      POSTGRES_DB: unrobot-postgres   # <-- CAMBIADO para coincidir
+      POSTGRES_USER: postgres       # <-- CAMBIADO para coincidir
+      POSTGRES_PASSWORD: 1234         # <-- CAMBIADO para coincidir
     ports:
       - "5432:5432"
     volumes:
       - unrobot_data:/var/lib/postgresql/data
 
 volumes:
-
   unrobot_data:
+    driver: local

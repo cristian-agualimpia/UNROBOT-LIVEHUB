@@ -1,4 +1,4 @@
-package com.unrobot_livehub.categorias_service;
+package com.unrobot_livehub.registro_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
