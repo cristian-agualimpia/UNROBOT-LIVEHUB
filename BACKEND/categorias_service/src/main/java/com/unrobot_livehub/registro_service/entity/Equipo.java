@@ -1,57 +1,42 @@
 package com.unrobot_livehub.registro_service.entity;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType; // <-- Importar
-import jakarta.persistence.Enumerated; // <-- Importar
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.GenericGenerator;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor // @NoArgsConstructor es necesario para JPA
+import java.util.UUID;
+
+/**
+ * Entidad JPA que representa a un equipo participante.
+ * @Data (de Lombok) incluye: @Getter, @Setter, @ToString, @EqualsAndHashCode
+ * @NoArgsConstructor - Constructor vacío (requerido por JPA)
+ * @AllArgsConstructor - Constructor con todos los campos
+ */
 @Entity
 @Table(name = "equipos")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Equipo {
-    
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true) // El nombre de equipo debe ser único [cite: 24]
-    private String nombreEquipo;
-
-    private String nombreRobot;
-
-    private int puntaje = 0; // Es buena práctica inicializar el puntaje
-
-    @Enumerated(EnumType.STRING) // Almacena el enum como String (ej. "MINI_SUMO")
-    @Column(name = "categoria", nullable = false)
-    private Categoria categoria; // Usamos el tipo Categoria
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(nullable = false)
-    private String nombreCapitan;
+    private String nombre;
+    
+    private String institucion;
 
+    // --- La clave ---
+    // Almacena el CategoriaTipo como un String en la BD (ej: "BOLABOT_SENIOR")
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String correoCapitan;
-
-    private Boolean activo = true;
-
-    // El constructor que tenías para 'nombre' y 'codigo'
-    // lo he quitado porque 'codigo' no existe en la entidad.
-    // Lombok @AllArgsConstructor y @NoArgsConstructor ya manejan los constructores.
+    private CategoriaTipo categoria;
+    
+    // (Puedes agregar más campos como datos de contacto del capitán, etc.)
 }

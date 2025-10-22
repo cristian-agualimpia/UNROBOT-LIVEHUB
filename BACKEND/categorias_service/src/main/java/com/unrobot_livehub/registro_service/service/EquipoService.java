@@ -1,17 +1,16 @@
 package com.unrobot_livehub.registro_service.service;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.modelmapper.ModelMapper;
+import com.unrobot_livehub.registro_service.dtos.EquipoDTO;
+import com.unrobot_livehub.registro_service.entity.CategoriaTipo;
+import com.unrobot_livehub.registro_service.entity.Equipo;
+import com.unrobot_livehub.registro_service.repository.EquipoRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.unrobot_livehub.registro_service.dto.EquipoDTO;
-import com.unrobot_livehub.registro_service.entity.Equipo;
-import com.unrobot_livehub.registro_service.entity.Institucion;
-import com.unrobot_livehub.registro_service.repository.EquipoRepository;
-import com.unrobot_livehub.registro_service.repository.InstitucionRepository;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class EquipoService {
@@ -19,92 +18,56 @@ public class EquipoService {
     @Autowired
     private EquipoRepository equipoRepository;
 
-    @Autowired
-    private InstitucionRepository institucionRepository;
+    /**
+     * Registra un nuevo equipo.
+     */
+    public EquipoDTO createEquipo(EquipoDTO equipoDTO) {
+        // Validación del Enum
+        CategoriaTipo categoria = CategoriaTipo.valueOf(equipoDTO.getCategoriaTipo());
+        
+        Equipo equipo = new Equipo();
+        equipo.setNombre(equipoDTO.getNombre());
+        equipo.setInstitucion(equipoDTO.getInstitucion());
+        equipo.setCategoria(categoria);
 
-    @Autowired
-    private ModelMapper modelMapper;
-
-    public EquipoDTO crearEquipo(EquipoDTO equipoDTO) {
-        // Validar código único
-        if (equipoRepository.existsByCodigo(equipoDTO.getCodigo())) {
-            throw new RuntimeException("Ya existe un equipo con este código");
-        }
-
-        // Validar nombre único por institución
-        if (equipoRepository.existsByNombreAndInstitucionId(equipoDTO.getNombre(), equipoDTO.getInstitucionId())) {
-            throw new RuntimeException("Ya existe un equipo con este nombre en la institución");
-        }
-
-        // Obtener la institución
-        Institucion institucion = institucionRepository.findById(equipoDTO.getInstitucionId())
-                .orElseThrow(() -> new RuntimeException("Institución no encontrada con ID: " + equipoDTO.getInstitucionId()));
-
-        Equipo equipo = modelMapper.map(equipoDTO, Equipo.class);
-        equipo.setInstitucion(institucion);
-        equipo = equipoRepository.save(equipo);
-
-        return convertirAEquipoDTO(equipo);
+        Equipo equipoGuardado = equipoRepository.save(equipo);
+        return convertToDTO(equipoGuardado);
     }
 
-    public List<EquipoDTO> obtenerTodosLosEquipos() {
-        return equipoRepository.findAll()
-                .stream()
-                .map(this::convertirAEquipoDTO)
-                .collect(Collectors.toList());
-    }
-
-    public EquipoDTO obtenerEquipoPorId(Long id) {
+    /**
+     * Obtiene un equipo por su ID.
+     */
+    public EquipoDTO getEquipoById(UUID id) {
         Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Equipo no encontrado con ID: " + id));
-        return convertirAEquipoDTO(equipo);
+                .orElseThrow(() -> new EntityNotFoundException("Equipo no encontrado con id: " + id));
+        return convertToDTO(equipo);
     }
 
-    public List<EquipoDTO> obtenerEquiposPorInstitucion(Long institucionId) {
-        return equipoRepository.findByInstitucionId(institucionId)
-                .stream()
-                .map(this::convertirAEquipoDTO)
+    /**
+     * Obtiene todos los equipos registrados.
+     */
+    public List<EquipoDTO> getAllEquipos() {
+        return equipoRepository.findAll().stream()
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    public EquipoDTO actualizarEquipo(Long id, EquipoDTO equipoDTO) {
-        Equipo equipoExistente = equipoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Equipo no encontrado con ID: " + id));
-
-        // Validar código único si cambió
-        if (!equipoExistente.getCodigo().equals(equipoDTO.getCodigo()) &&
-            equipoRepository.existsByCodigo(equipoDTO.getCodigo())) {
-            throw new RuntimeException("Ya existe otro equipo con este código");
-        }
-
-        // Validar nombre único por institución si cambió
-        if (!equipoExistente.getNombre().equals(equipoDTO.getNombre()) &&
-            equipoRepository.existsByNombreAndInstitucionId(equipoDTO.getNombre(), equipoDTO.getInstitucionId())) {
-            throw new RuntimeException("Ya existe otro equipo con este nombre en la institución");
-        }
-
-        // Actualizar institución si cambió
-        if (!equipoExistente.getInstitucion().getId().equals(equipoDTO.getInstitucionId())) {
-            Institucion nuevaInstitucion = institucionRepository.findById(equipoDTO.getInstitucionId())
-                    .orElseThrow(() -> new RuntimeException("Institución no encontrada con ID: " + equipoDTO.getInstitucionId()));
-            equipoExistente.setInstitucion(nuevaInstitucion);
-        }
-
-        modelMapper.map(equipoDTO, equipoExistente);
-        equipoExistente = equipoRepository.save(equipoExistente);
-        return convertirAEquipoDTO(equipoExistente);
+    /**
+     * Obtiene todos los equipos de una categoría específica.
+     * (Usado por BracketService)
+     */
+    public List<Equipo> getEquiposByCategoria(CategoriaTipo categoria) {
+        return equipoRepository.findByCategoria(categoria);
     }
 
-    public void eliminarEquipo(Long id) {
-        if (!equipoRepository.existsById(id)) {
-            throw new RuntimeException("Equipo no encontrado con ID: " + id);
-        }
-        equipoRepository.deleteById(id);
-    }
-
-    private EquipoDTO convertirAEquipoDTO(Equipo equipo) {
-        EquipoDTO dto = modelMapper.map(equipo, EquipoDTO.class);
-        dto.setInstitucionNombre(equipo.getInstitucion().getNombre());
-        return dto;
+    // --- Métodos de Conversión ---
+    
+    private EquipoDTO convertToDTO(Equipo equipo) {
+        return new EquipoDTO(
+                equipo.getId(),
+                equipo.getNombre(),
+                equipo.getInstitucion(),
+                equipo.getCategoria().name() // Convertir Enum a String
+        );
     }
 }
