@@ -3,8 +3,8 @@ package com.unrobot_livehub.registro_service.dtos;
 import lombok.Data;
 
 /**
- * DTO específico (Payload) que recibe el endpoint 
- * PUT /api/v1/enfrentamientos/{id}
+ * DTO (CORREGIDO) específico (Payload) que recibe el endpoint
+ * PUT /api/v1/enfrentamientos/{id}/score
  * para actualizar un puntaje o añadir una nota.
  */
 @Data
@@ -13,8 +13,9 @@ public class ScoreUpdatePayload {
     /**
      * Define a qué equipo aplicar la acción.
      * Valores esperados: "A" o "B"
+     * (Este era el campo que faltaba)
      */
-    private String team; 
+    private String team;
 
     /**
      * Define la acción a realizar.
@@ -24,6 +25,7 @@ public class ScoreUpdatePayload {
 
     /**
      * El contenido de la nota (solo se usa si action = "ADD_NOTE").
+     * Es opcional y puede ser null.
      */
     private String note;
 }

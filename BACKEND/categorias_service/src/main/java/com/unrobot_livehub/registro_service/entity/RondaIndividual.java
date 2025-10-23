@@ -12,11 +12,11 @@ import java.util.UUID;
  * Entidad JPA para rondas de categorías de tiempo/velocidad (Seguidor de Línea).
  */
 @Entity
-@Table(name = "rondas_velocistas")
+@Table(name = "ronda_individual")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RondaVelocista {
+public class RondaIndividual {
 
     @Id
     @GeneratedValue(generator = "UUID")

@@ -12,7 +12,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RondaVelocistaDTO {
+public class RondaIndividualDTO {
 
     private UUID id; // Null al crear
     private String categoriaTipo; // Ej: "SEGUIDOR_LINEA_PRO"

@@ -1,7 +1,7 @@
 package com.unrobot_livehub.registro_service.repository;
 
 import com.unrobot_livehub.registro_service.entity.CategoriaTipo;
-import com.unrobot_livehub.registro_service.entity.RondaVelocista;
+import com.unrobot_livehub.registro_service.entity.RondaIndividual;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,7 +12,7 @@ import java.util.UUID;
  * Repositorio Spring Data JPA para la entidad RondaVelocista.
  */
 @Repository
-public interface RondaVelocistaRepository extends JpaRepository<RondaVelocista, UUID> {
+public interface RondaIndividualRepository extends JpaRepository<RondaIndividual, UUID> {
 
     /**
      * Busca todas las rondas de una categoría específica, ordenadas por el
@@ -21,7 +21,7 @@ public interface RondaVelocistaRepository extends JpaRepository<RondaVelocista, 
      * @param categoria El CategoriaTipo (Enum).
      * @return Una lista ordenada de las rondas (mejores tiempos primero).
      */
-    List<RondaVelocista> findByCategoriaOrderByTiempoFinalMsAsc(CategoriaTipo categoria);
+    List<RondaIndividual> findByCategoriaOrderByTiempoFinalMsAsc(CategoriaTipo categoria);
 
     /**
      * Busca todas las rondas de un equipo específico en una categoría.
@@ -31,5 +31,5 @@ public interface RondaVelocistaRepository extends JpaRepository<RondaVelocista, 
      * @param idEquipo El UUID del equipo.
      * @return Una lista de las rondas de ese equipo.
      */
-    List<RondaVelocista> findByCategoriaAndIdEquipo(CategoriaTipo categoria, UUID idEquipo);
+    List<RondaIndividual> findByCategoriaAndIdEquipo(CategoriaTipo categoria, UUID idEquipo);
 }

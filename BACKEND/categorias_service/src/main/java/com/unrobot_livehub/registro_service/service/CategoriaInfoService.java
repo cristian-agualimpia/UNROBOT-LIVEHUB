@@ -8,36 +8,35 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para manejar la lógica de negocio relacionada con la
- * información estática de las categorías (leída desde el Enum).
- * No accede a la base de datos.
- */
 @Service
 public class CategoriaInfoService {
 
     /**
-     * Obtiene la información de todas las categorías definidas en el Enum.
-     *
-     * @return Una lista de DTOs, cada uno representando una categoría.
+     * Obtiene la información de TODAS las categorías definidas en el Enum.
+     * (Este ya lo teníamos)
      */
     public List<CategoriaInfoDTO> getAllCategoriasInfo() {
-        
-        // 1. Obtener todos los valores del Enum CategoriaTipo
-        // 2. Usar stream() para procesar la lista
-        // 3. Mapear cada valor del Enum a un nuevo CategoriaInfoDTO
-        // 4. Coleccionar los resultados en una Lista
-        
         return Arrays.stream(CategoriaTipo.values())
-                .map(CategoriaInfoDTO::new) // Llama al constructor CategoriaInfoDTO(CategoriaTipo enumVal)
+                .map(CategoriaInfoDTO::new) // Llama al constructor CategoriaInfoDTO(CategoriaTipo)
                 .collect(Collectors.toList());
     }
 
-    // (Si en el futuro necesitas un DTO para UNA sola categoría,
-    // podrías añadir un método aquí)
-    //
-    // public CategoriaInfoDTO getCategoriaInfoByTipo(String tipo) {
-    //     CategoriaTipo enumVal = CategoriaTipo.valueOf(tipo);
-    //     return new CategoriaInfoDTO(enumVal);
-    // }
+    /**
+     * --- ¡NUEVO! ---
+     * Obtiene la información específica de UNA categoría por su tipo (su nombre en el Enum).
+     *
+     * @param tipo El nombre del enum (ej: "BOLABOT" o "minisumo_rc")
+     * @return El DTO con la información de esa categoría.
+     * @throws IllegalArgumentException si el 'tipo' no existe en el Enum.
+     */
+    public CategoriaInfoDTO getCategoriaInfoByTipo(String tipo) {
+        
+        // 1. Convierte el String (ej: "bolabot") a mayúsculas ("BOLABOT")
+        // 2. CategoriaTipo.valueOf() busca el valor del Enum que coincida.
+        //    (Esto arrojará un error automático si el tipo no es válido)
+        CategoriaTipo enumVal = CategoriaTipo.valueOf(tipo.toUpperCase());
+        
+        // 3. Llama al constructor del DTO con ese único valor
+        return new CategoriaInfoDTO(enumVal);
+    }
 }

@@ -4,23 +4,36 @@ import com.unrobot_livehub.registro_service.entity.CategoriaTipo;
 import lombok.Data;
 
 /**
- * DTO para transportar la información estática de las categorías al frontend.
- * No se mapea a una entidad, se construye desde el Enum.
- * @Data (Lombok) = @Getter, @Setter, @ToString, @EqualsAndHashCode
+ * DTO (ACTUALIZADO) para transportar la información estática COMPLETA
+ * de las categorías al frontend.
+ * Se construye a partir del Enum CategoriaTipo.
  */
 @Data
 public class CategoriaInfoDTO {
 
-    private String tipo; // El nombre del ENUM (ej: "BOLABOT_SENIOR")
-    private String nombre; // El nombre completo (ej: "Bolabot Senior 2v2")
-    private String reglas; // El texto de las reglas
+    // --- Identificación y Lógica ---
+    private String tipo; // El nombre del ENUM (ej: "BOLABOT")
+    private String tipoLogica; // "ENFRENTAMIENTO" o "VELOCISTA" (ahora "RondaIndividual")
+
+    // --- Información Descriptiva (Lo nuevo) ---
+    private String nombreCompleto;
+    private String resumenDescriptivo;
+    private String descripcionPista;
+    private String publicoDirigido;
+    private int integrantesMax;
+    private String reglasResumen;
 
     /**
-     * Constructor conveniente para crear el DTO a partir del Enum.
+     * Constructor (ACTUALIZADO) que mapea TODOS los campos del Enum al DTO.
      */
     public CategoriaInfoDTO(CategoriaTipo enumVal) {
         this.tipo = enumVal.name();
-        this.nombre = enumVal.getNombreCompleto();
-        this.reglas = enumVal.getReglas();
+        this.tipoLogica = enumVal.getTipoLogica().name(); // Mapeamos el enum interno a String
+        this.nombreCompleto = enumVal.getNombreCompleto();
+        this.resumenDescriptivo = enumVal.getResumenDescriptivo();
+        this.descripcionPista = enumVal.getDescripcionPista();
+        this.publicoDirigido = enumVal.getPublicoDirigido();
+        this.integrantesMax = enumVal.getIntegrantesMax();
+        this.reglasResumen = enumVal.getReglasResumen();
     }
 }
