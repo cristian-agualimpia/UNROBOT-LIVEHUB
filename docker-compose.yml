@@ -1,17 +1,46 @@
 version: '3.8'
 
 services:
+
+  # --- Servicio del Backend (Spring Boot) ---
+  categorias-service:
+    build:
+      # Esta ruta es la clave. 
+      # Significa "busca la carpeta 'categorias_service' 
+      # en el mismo directorio que este archivo compose".
+      # ¡Esto ya es correcto!
+      context: ./categorias_service  
+    container_name: unrobot_categorias_service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://unrobot-postgres:5432/unrobot-postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+    depends_on:
+      - postgres-db 
+    networks:
+      - unrobot-net
+
+  # --- Servicio de la Base de Datos (PostgreSQL) ---
   postgres-db:
     image: postgres:13
     container_name: unrobot-postgres
     environment:
-      POSTGRES_DB: unrobot-postgres   # <-- CAMBIADO para coincidir
-      POSTGRES_USER: postgres       # <-- CAMBIADO para coincidir
-      POSTGRES_PASSWORD: 1234         # <-- CAMBIADO para coincidir
+      POSTGRES_DB: unrobot-postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
     ports:
-      - "5432:5432"
+      - "5432:5432" 
     volumes:
       - unrobot_data:/var/lib/postgresql/data
+    networks:
+      - unrobot-net
+
+networks:
+  unrobot-net:
+    driver: bridge
 
 volumes:
   unrobot_data:
