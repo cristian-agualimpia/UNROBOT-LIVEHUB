@@ -1,6 +1,6 @@
 # ----- Etapa 1: Build -----
-# CAMBIO: Usamos una imagen de Maven con JDK 21
-FROM maven:3.8-openjdk-21 AS build
+# CORRECCIÓN: Usar una etiqueta específica y disponible
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 # Establecemos el directorio de trabajo dentro del contenedor
 WORKDIR /app
@@ -8,8 +8,8 @@ WORKDIR /app
 # Copiamos los archivos de definición del proyecto
 COPY pom.xml .
 
-# Descargamos las dependencias (esto se cachea si pom.xml no cambia)
-RUN mvn dependency:go-offline
+# Descargamos las dependencias
+RUN mvn dependency:go-offline -B
 
 # Copiamos el resto del código fuente
 COPY src ./src
@@ -18,13 +18,13 @@ COPY src ./src
 RUN mvn package -DskipTests
 
 # ----- Etapa 2: Run -----
-# CAMBIO: Usamos una imagen ligera de solo Java Runtime (JRE) 21
-FROM eclipse-temurin:21-jre-jammy
+# CORRECCIÓN: Usar etiqueta específica para Temurin
+FROM eclipse-temurin:21.0.2_13-jre-jammy
 
 # Establecemos el directorio de trabajo
 WORKDIR /app
 
-# Copiamos CUALQUIER .jar de la carpeta target.
+# CORRECCIÓN: Copiar el JAR con nombre específico
 COPY --from=build /app/target/*.jar app.jar
 
 # Exponemos el puerto en el que corre Spring Boot
