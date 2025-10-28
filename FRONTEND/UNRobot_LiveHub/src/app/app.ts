@@ -1,22 +1,22 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
-// Importamos tus componentes reusables de Header y Footer
-import { HeaderComponent } from './shared/components/header/header.component';
-import { FooterComponent } from './shared/components/footer/footer.component';
+// CORREGIDO: Se quitó .component de las rutas
+import { HeaderComponent } from './shared/components/header/header';
+import { FooterComponent } from './shared/components/footer/footer';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  // 1. Añadimos los componentes y el RouterOutlet a la lista de imports
   imports: [
     RouterOutlet, 
     HeaderComponent, 
     FooterComponent
   ],
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
+  // CORREGIDO: Se cambió a .html y .css (como mencionaste)
+  templateUrl: './app.html',
+  styleUrls: ['./app.css'], 
 })
 export class AppComponent {
-  title = 'UNRobot_LiveHub'; // Puedes mantener esto o quitarlo
+  title = 'UNRobot_LiveHub';
 }

@@ -1,1 +1,43 @@
-<p>landing works!</p>
+<div class="text-center p-8">
+  
+  <h1 class="font-heading text-5xl font-bold text-unrobot-blue mb-4">
+    ¡Bienvenido a UNRobot LiveHub!
+  </h1>
+  
+  <p class="font-sans text-xl text-brand-dark mb-12">
+    El sistema de gestión en tiempo real de la competencia.
+  </p>
+
+  <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+    <h2 class="font-heading text-2xl font-semibold text-gray-800 mb-6">
+      Panel de Jueces
+    </h2>
+    
+    <p class="font-sans text-gray-600 mb-8">
+      Selecciona la acción que deseas realizar. Se requerirá tu contraseña de juez.
+    </p>
+    
+    <div class="space-y-4">
+      
+      <button 
+        (click)="goToScoring()"
+        class="w-full bg-unrobot-blue text-white font-bold py-3 px-6 rounded-lg 
+               font-heading text-lg shadow-md
+               hover:bg-opacity-90 transition-all duration-200
+               focus:outline-none focus:ring-2 focus:ring-unrobot-gold focus:ring-opacity-75">
+        1. Ir a Puntuaciones
+      </button>
+      
+      <button 
+        (click)="goToRegistration()"
+        class="w-full bg-brand-light text-brand-dark font-bold py-3 px-6 rounded-lg 
+               font-heading text-lg border border-gray-300
+               hover:bg-gray-200 transition-all duration-200
+               focus:outline-none focus:ring-2 focus:ring-unrobot-gold focus:ring-opacity-75">
+        2. Registrar Equipos
+      </button>
+    </div>
+    
+  </div>
+
+</div>
