@@ -1,0 +1,31 @@
+/* Hacemos que el componente raíz (app-root) ocupe 
+  toda la altura de la pantalla y use flexbox 
+  en modo columna.
+*/
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; // Ocupa al menos el 100% de la altura de la vista
+}
+
+/*
+  El contenido principal (donde va el router-outlet)
+  debe "crecer" para ocupar todo el espacio disponible
+  entre el header y el footer.
+*/
+.main-content {
+  flex: 1; // Esta es la línea mágica
+  padding: 2rem; // Añade un poco de espacio interno (ajusta a tu gusto)
+  width: 100%;
+  max-width: 1200px; // Centra el contenido en pantallas grandes
+  margin: 0 auto; // Centra el contenedor
+  box-sizing: border-box; // Asegura que el padding no rompa el layout
+}
+
+/* Nos aseguramos de que el header y el footer 
+  no crezcan ni se encojan, solo ocupen su espacio.
+*/
+app-header,
+app-footer {
+  flex-shrink: 0;
+}
