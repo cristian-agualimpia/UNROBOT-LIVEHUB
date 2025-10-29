@@ -1,11 +1,22 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { Location, CommonModule } from '@angular/common'; // 1. Importar Location y CommonModule
 
 @Component({
   selector: 'app-back-button',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule], // 2. Añadir CommonModule (necesario para el SVG)
   templateUrl: './back-button.html',
-  styleUrl: './back-button.css'
+  styleUrls: ['./back-button.css']
 })
-export class BackButton {
+export class BackButtonComponent {
 
+  // 3. Inyectar el servicio Location
+  private location = inject(Location);
+
+  /**
+   * Navega a la vista anterior en el historial del navegador.
+   */
+  goBack(): void {
+    this.location.back();
+  }
 }
