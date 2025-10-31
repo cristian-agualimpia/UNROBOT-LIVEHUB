@@ -14,6 +14,15 @@ export interface UpdateRondaIndividualDTO {
   estadoRonda: 'FINALIZADA'; // Marcamos la ronda como finalizada
 }
 
+
+export interface CreateRondaIndividualDTO {
+  categoriaTipo: string;
+  idEquipo: string;
+  tiempoMs: number;
+  penalizaciones: number;
+  etiquetaRonda: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -22,18 +31,23 @@ export class IndividualRoundService {
   private http = inject(HttpClient);
 
   /**
+   * POST /api/v1/rondas-individuales
+   * Crea una nueva ronda (intento) para un equipo.
+   */
+  createRound(payload: CreateRondaIndividualDTO): Observable<RondaIndividualDTO> {
+    return this.http.post<RondaIndividualDTO>('/rondas-individuales', payload);
+  }
+
+  /**
    * GET /api/v1/rondas-individuales/categoria/{categoriaTipo}
+   * (Lo mantenemos por si lo usamos en el futuro para ver un historial)
    */
   getRoundsByCategory(categoryId: string): Observable<RondaIndividualDTO[]> {
     return this.http.get<RondaIndividualDTO[]>(`/rondas-individuales/categoria/${categoryId}`);
   }
 
-  // --- NUEVOS MÉTODOS ---
-
   /**
    * GET /api/v1/rondas-individuales/{id}
-   * Obtiene los datos de una única ronda individual por su ID.
-   * (Asumimos que este endpoint existe)
    */
   getRoundById(roundId: string): Observable<RondaIndividualDTO> {
     return this.http.get<RondaIndividualDTO>(`/rondas-individuales/${roundId}`);
@@ -41,10 +55,9 @@ export class IndividualRoundService {
 
   /**
    * PUT /api/v1/rondas-individuales/{id}
-   * Actualiza una ronda individual con su puntaje, tiempo y fallos.
-   * (Asumimos que este endpoint existe)
+   * (Este DTO es de judge-form-individual, lo dejamos como está)
    */
-  updateRound(roundId: string, payload: UpdateRondaIndividualDTO): Observable<RondaIndividualDTO> {
+  updateRound(roundId: string, payload: any): Observable<RondaIndividualDTO> {
     return this.http.put<RondaIndividualDTO>(`/rondas-individuales/${roundId}`, payload);
   }
 }

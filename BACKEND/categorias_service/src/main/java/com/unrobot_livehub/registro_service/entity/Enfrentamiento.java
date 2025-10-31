@@ -51,7 +51,7 @@ public class Enfrentamiento {
     private String etiquetaRonda; // Ej: "Octavos-1", "Final"
 
     // --- Otros Datos ---
-    @Lob // Para texto largo (en algunas BD) o usa @Column(length = 2000)
+    //@Lob // Para texto largo (en algunas BD) o usa @Column(length = 2000)
     private String faltasNotas; // Tu idea de la nota en string
     
     // (Puedes agregar un estado: "PENDIENTE", "EN_JUEGO", "FINALIZADO")

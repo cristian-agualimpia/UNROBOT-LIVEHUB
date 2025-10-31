@@ -46,4 +46,18 @@ public class EquipoController {
         List<EquipoDTO> equipos = equipoService.getAllEquipos();
         return ResponseEntity.ok(equipos);
     }
+
+    /**
+     * --- ¡NUEVO ENDPOINT! ---
+     * Obtiene la lista de equipos filtrados por categoría.
+     *
+     * Ej: GET /api/v1/equipos/categoria/BOLABOT
+     */
+    @GetMapping("/categoria/{categoriaTipo}")
+    public ResponseEntity<List<EquipoDTO>> getEquiposPorCategoria(
+            @PathVariable String categoriaTipo
+    ) {
+        List<EquipoDTO> equipos = equipoService.getEquiposPorCategoria(categoriaTipo);
+        return ResponseEntity.ok(equipos);
+    }
 }

@@ -20,8 +20,12 @@ public class BracketService {
     private EnfrentamientoRepository enfrentamientoRepository;
     
     @Autowired
-    private EquipoService equipoService; // Asumo que se llama así
+    private EquipoService equipoService;
 
+    // Define el orden de las rondas, de la primera a la última
+    private static final List<String> ORDEN_RONDAS = List.of(
+        "Ronda-de-64", "Dieciseisavos", "Octavos", "Cuartos", "Semifinal", "Final"
+    );
     /**
      * ¡MÉTODO MODIFICADO!
      * Genera la primera ronda de forma aleatoria Y CALCULA AUTOMÁTICAMENTE
@@ -86,44 +90,84 @@ public class BracketService {
     }
     
     /**
-     * Avanza a la siguiente ronda usando los ganadores de la ronda actual.
-     * (Este método ya estaba bien)
+     * ¡MÉTODO MODIFICADO!
+     * Avanza a la siguiente ronda, detectando automáticamente la ronda actual.
      */
-    public void avanzarRonda(String categoriaTipo, String rondaActual) {
+    public void avanzarRonda(String categoriaTipo) {
         CategoriaTipo categoria = CategoriaTipo.valueOf(categoriaTipo.toUpperCase());
-        String proximaRonda = calcularProximaRonda(rondaActual); // Ej: "Octavos" -> "Cuartos"
+        
+        // 1. Obtener TODOS los enfrentamientos de la categoría
+        List<Enfrentamiento> todosLosPartidos = enfrentamientoRepository.findByCategoria(categoria);
 
-        // 1. Buscar TODOS los enfrentamientos de la ronda actual (reales Y byes)
-        List<Enfrentamiento> rondaAnterior = enfrentamientoRepository.findByCategoriaAndEtiquetaRondaStartingWith(
-            categoria, 
-            rondaActual
-        );
-
-        // 2. Obtener la lista de IDs de ganadores
-        List<UUID> idsGanadores = new ArrayList<>();
-        for (Enfrentamiento match : rondaAnterior) {
-            if (match.getIdGanador() == null) {
-                throw new IllegalStateException("No se puede avanzar la ronda. El enfrentamiento " + match.getEtiquetaRonda() + " aún no tiene un ganador.");
+        // 2. Encontrar la última ronda que se generó
+        String rondaActual = null;
+        for (int i = ORDEN_RONDAS.size() - 1; i >= 0; i--) { // Itera al revés (de "Final" a "Ronda-de-64")
+            String ronda = ORDEN_RONDAS.get(i);
+            boolean estaRondaExiste = todosLosPartidos.stream()
+                                    .anyMatch(p -> p.getEtiquetaRonda().startsWith(ronda));
+            if (estaRondaExiste) {
+                rondaActual = ronda;
+                break;
             }
-            idsGanadores.add(match.getIdGanador());
         }
 
-        if (idsGanadores.size() <= 1) {
-            // Ya es la final, no hay más rondas que crear.
-            return;
+        if (rondaActual == null) {
+            throw new IllegalStateException("No se han generado llaves iniciales para esta categoría.");
         }
+        if (rondaActual.equals("Final")) {
+            throw new IllegalStateException("El torneo ya está en la Final. No se puede avanzar más.");
+        }
+
+        // 3. Verificar si esta ronda actual está 100% completada
+        String finalRondaActual = rondaActual; // Necesario para el lambda
+        List<Enfrentamiento> partidosRondaActual = todosLosPartidos.stream()
+                .filter(p -> p.getEtiquetaRonda().startsWith(finalRondaActual))
+                .toList();
+
+        boolean todosTienenGanador = partidosRondaActual.stream()
+                                    .allMatch(p -> p.getIdGanador() != null);
+
+        if (!todosTienenGanador) {
+            throw new IllegalStateException("No se puede avanzar. La ronda '" + rondaActual + "' aún tiene partidos pendientes.");
+        }
+
+        // 4. ¡La ronda está completa! Procedemos a generar la siguiente
+        String proximaRonda = calcularProximaRonda(rondaActual); // Ej: "Octavos" -> "Cuartos"
+        
+        List<UUID> idsGanadores = partidosRondaActual.stream()
+                                    .map(Enfrentamiento::getIdGanador)
+                                    .collect(Collectors.toList());
+        
+        // (Opcional: Mezclar los ganadores para que los emparejamientos no sean predecibles)
+        Collections.shuffle(idsGanadores);
 
         List<Enfrentamiento> nuevosEnfrentamientos = new ArrayList<>();
-        Collections.shuffle(idsGanadores); // Mezclamos a los ganadores para la siguiente ronda
-
-        // 3. Agrupar ganadores de 2 en 2 para crear la siguiente ronda
+        
         for (int i = 0; i < idsGanadores.size(); i += 2) {
-            // ... (El resto de la lógica de avanzar ronda que ya teníamos)
-            // ...
+            UUID idGanadorA = idsGanadores.get(i);
+            // Manejo de BYE en rondas avanzadas (raro, pero posible si el # de ganadores es impar)
+            UUID idGanadorB = (i + 1 < idsGanadores.size()) ? idsGanadores.get(i + 1) : null;
+
+            Enfrentamiento matchNuevo = new Enfrentamiento();
+            matchNuevo.setCategoria(categoria);
+            matchNuevo.setIdEquipoA(idGanadorA);
+            
+            if (idGanadorB != null) {
+                matchNuevo.setIdEquipoB(idGanadorB);
+                matchNuevo.setEtiquetaRonda(proximaRonda + "-" + (i / 2 + 1)); // Ej: "Cuartos-1"
+                matchNuevo.setPuntosA(0);
+                matchNuevo.setPuntosB(0);
+            } else {
+                // Un ganador pasa por BYE
+                matchNuevo.setIdEquipoB(null);
+                matchNuevo.setEtiquetaRonda(proximaRonda + "-BYE");
+                matchNuevo.setIdGanador(idGanadorA); // Gana automáticamente
+            }
+            nuevosEnfrentamientos.add(matchNuevo);
         }
         
-        // 4. Guardar la nueva ronda
-        // enfrentamientoRepository.saveAll(nuevosEnfrentamientos);
+        // 5. Guardar la nueva ronda
+        enfrentamientoRepository.saveAll(nuevosEnfrentamientos);
     }
 
 

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 /**
  * DTO para mostrar la información de un Enfrentamiento (Bolabot, Sumo).
+ * ¡MODIFICADO para incluir nombres de equipos!
  */
 @Data
 @NoArgsConstructor
@@ -15,19 +16,20 @@ import java.util.UUID;
 public class EnfrentamientoDTO {
 
     private UUID id;
-    private String categoriaTipo; // Ej: "MINISUMO_RC"
+    private String categoriaTipo;
 
     private UUID idEquipoA;
     private UUID idEquipoB;
     
-    // (Opcional pero recomendado: podríamos traer los nombres de los equipos)
-    // private String nombreEquipoA;
-    // private String nombreEquipoB;
+    // --- ¡CAMPOS AÑADIDOS! ---
+    // (Serán 'null' si el equipo no existe o es un BYE)
+    private String nombreEquipoA;
+    private String nombreEquipoB;
 
     private int puntosA;
     private int puntosB;
 
     private UUID idGanador;
-    private String etiquetaRonda; // Ej: "Cuartos-1"
+    private String etiquetaRonda;
     private String faltasNotas;
 }

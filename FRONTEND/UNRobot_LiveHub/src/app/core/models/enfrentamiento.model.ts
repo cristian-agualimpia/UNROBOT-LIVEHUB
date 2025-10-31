@@ -1,35 +1,24 @@
-import { EquipoSimpleDTO } from "./equipo.model";
-
-export type EstadoEnfrentamiento = 'PENDIENTE' | 'EN_CURSO' | 'FINALIZADO';
-
 /**
- * DTO que representa un Enfrentamiento.
- * ACTUALIZADO para coincidir con la respuesta real de la API
- * (GET /enfrentamientos/categoria/{...})
+ * DTO de DETALLE (Plano con Nombres) para un Enfrentamiento.
+ * Usado por 'judge-form-confrontation' (el formulario).
+ * Coincide con la respuesta de: GET /enfrentamientos/{id}
  */
 export interface EnfrentamientoDTO {
-  id: string;
+  id: string; // Es un UUID
   categoriaTipo: string;
+
+  idEquipoA: string | null; // Es un UUID
+  idEquipoB: string | null; // Es un UUID
   
-  // IDs planos (en lugar de objetos anidados)
-  idEquipoA: string | null;
-  idEquipoB: string | null;
+  nombreEquipoA: string | null;
+  nombreEquipoB: string | null;
 
   puntosA: number;
   puntosB: number;
 
-  idGanador: string | null;
-  
-  // Campos de estado y ronda
-  etiquetaRonda: string; // Ej: "Octavos-BYE"
+  idGanador: string | null; // Es un UUID
+  etiquetaRonda: string;
   faltasNotas: string | null;
-
-  // --- CAMPOS QUE YA NO VIENEN DE LA API (según tu JSON) ---
-  // estado: EstadoEnfrentamiento; // Lo derivaremos lógicamente
-  // ronda: number;
-  // orden: number;
-  // equipoA: EquipoSimpleDTO | null;
-  // equipoB: EquipoSimpleDTO | null;
-  // ganadorId: string | null;
-  // perdedorId: string | null;
+  
+  // NOTA: El campo 'estado' NO viene del backend.
 }

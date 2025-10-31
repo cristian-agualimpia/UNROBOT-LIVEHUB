@@ -1,7 +1,11 @@
-// 1. Importar OnInit
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EnfrentamientoDTO } from '../../../../core/models/enfrentamiento.model';
+import { forkJoin, of } from 'rxjs'; 
+
+// --- CORRECCIÓN DE RUTA: ../../../../ (4 puntos) ---
+import { EnfrentamientoListItemDTO } from '../../../../core/models/enfrentamiento-list-item.model';
+import { EquipoDTO } from '../../../../core/models/equipo.model'; 
+import { TeamService } from '../../../team-registration/services/team.service';
 
 type EstadoCalculado = 'PENDIENTE' | 'EN_CURSO' | 'FINALIZADO';
 
@@ -12,16 +16,18 @@ type EstadoCalculado = 'PENDIENTE' | 'EN_CURSO' | 'FINALIZADO';
   templateUrl: './confrontation-list-item.html',
   styleUrls: ['./confrontation-list-item.css']
 })
-// 2. Implementar OnInit
 export class ConfrontationListItemComponent implements OnInit {
 
-  @Input() matchData!: EnfrentamientoDTO;
+  @Input() matchData!: EnfrentamientoListItemDTO;
   @Output() onScore = new EventEmitter<string>();
 
-  // 3. Crear una propiedad para guardar el estado
-  public estadoCalculado!: EstadoCalculado;
+  private teamService = inject(TeamService);
 
-  // 4. Calcular el estado UNA SOLA VEZ cuando el componente se inicia
+  public estadoCalculado!: EstadoCalculado;
+  public teamAName: string = '...';
+  public teamBName: string = '...';
+  private winnerName: string = 'N/A';
+
   ngOnInit(): void {
     if (this.matchData.idGanador) {
       this.estadoCalculado = 'FINALIZADO';
@@ -30,31 +36,37 @@ export class ConfrontationListItemComponent implements OnInit {
     } else {
       this.estadoCalculado = 'PENDIENTE';
     }
+    this.loadTeamNames();
+  }
+
+  loadTeamNames(): void {
+    const teamA$ = this.matchData.idEquipoA 
+      ? this.teamService.getTeamById(this.matchData.idEquipoA) 
+      : of(null as EquipoDTO | null); 
+      
+    const teamB$ = this.matchData.idEquipoB 
+      ? this.teamService.getTeamById(this.matchData.idEquipoB)
+      : of(null as EquipoDTO | null);
+
+    forkJoin([teamA$, teamB$]).subscribe(([teamA, teamB]) => {
+      this.teamAName = teamA?.nombre || 'Equipo Pendiente';
+      this.teamBName = teamB?.nombre || 'Equipo Pendiente';
+      
+      if (this.matchData.idGanador === teamA?.id) {
+        this.winnerName = teamA.nombre;
+      } else if (this.matchData.idGanador === teamB?.id) {
+        this.winnerName = teamB.nombre;
+      }
+    });
   }
 
   scoreMatch(): void {
-    // 5. Usar la propiedad en lugar de la función
     if (this.estadoCalculado !== 'FINALIZADO') {
       this.onScore.emit(this.matchData.id);
     }
   }
 
-  // (El resto de los métodos 'get...Name()' están bien como estaban)
-  getEquipoAName(): string {
-    return this.matchData.idEquipoA || 'Equipo Pendiente';
-  }
-
-  getEquipoBName(): string {
-    return this.matchData.idEquipoB || 'Equipo Pendiente';
-  }
-
   getWinnerName(): string {
-    if (this.matchData.idGanador === this.matchData.idEquipoA) {
-      return this.getEquipoAName();
-    }
-    if (this.matchData.idGanador === this.matchData.idEquipoB) {
-      return this.getEquipoBName();
-    }
-    return 'N/A';
+    return this.winnerName;
   }
 }

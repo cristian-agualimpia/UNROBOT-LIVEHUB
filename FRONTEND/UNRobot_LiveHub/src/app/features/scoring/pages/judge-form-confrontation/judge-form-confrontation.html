@@ -4,7 +4,6 @@
   <div *ngIf="isLoading && !matchSubject.value" class="text-center p-12">
     <p class="font-sans text-lg text-gray-600">Cargando datos del match...</p>
   </div>
-
   <div *ngIf="errorMessage" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
     <p class="font-bold">Error</p>
     <p>{{ errorMessage }}</p>
@@ -12,82 +11,97 @@
 
   <div *ngIf="match$ | async as match">
     
-    <div *ngIf="isLoading" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-70 text-white p-4 rounded-lg z-50">
-      Cargando...
-    </div>
-
-    <div *ngIf="match.idGanador" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+    <div *ngIf="isLoading" class="fixed top-1/2 left-1/2 ...">Cargando...</div>
+    <div *ngIf="estadoCalculado === 'FINALIZADO'" class="bg-green-100 ...">
       <p class="font-bold text-lg">Match Finalizado</p>
-      <p>Este match ha concluido. No se pueden registrar más acciones.</p>
     </div>
-
     <div class="text-center mb-6">
-      <h1 class="font-heading text-4xl font-bold text-unrobot-blue">
-        {{ match.categoriaTipo }}
-      </h1>
-      <p class="font-sans text-xl text-gray-700">
-        Ronda {{ match.etiquetaRonda }}
-      </p>
+      <h1 class="font-heading ...">{{ match.categoriaTipo }}</h1>
+      <p class="font-sans ...">Ronda {{ match.etiquetaRonda }}</p>
     </div>
-
     <div class="grid grid-cols-3 items-center text-center mb-8">
-      <h2 class="font-heading text-xl font-bold text-brand-dark truncate">
-        {{ match.idEquipoA || 'N/A' }}
-      </h2>
-      
-      <div class="font-sans font-black text-7xl text-unrobot-blue">
-        {{ match.puntosA }} - {{ match.puntosB }}
-      </div>
-
-      <h2 class="font-heading text-xl font-bold text-brand-dark truncate">
-        {{ match.idEquipoB || 'N/A' }}
-      </h2>
+      <h2 class="font-heading ...">{{ teamAName }}</h2>
+      <div class="font-sans ...">{{ match.puntosA }} - {{ match.puntosB }}</div>
+      <h2 class="font-heading ...">{{ teamBName }}</h2>
     </div>
+
 
     <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 mb-6">
       <h3 class="font-heading text-2xl font-semibold mb-4 text-center">Controles de Puntuación</h3>
       <div class="grid grid-cols-2 gap-4">
-        
         <div class="space-y-3">
-          <button (click)="updateScore('A', 'INCREMENT_POINT')" 
-                  [disabled]="match.idGanador || isLoading"
-                  class="w-full text-2xl py-4 bg-green-500 text-white font-bold rounded-lg ...">
+          <button (click)="updateScore('A', 'INCREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
             +1 Punto (A)
           </button>
-          <button (click)="updateScore('A', 'DECREMENT_POINT')" 
-                  [disabled]="match.idGanador || isLoading"
-                  class="w-full py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg ...">
+          <button (click)="updateScore('A', 'DECREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
             -1 (A)
           </button>
         </div>
-
         <div class="space-y-3">
-          <button (click)="updateScore('B', 'INCREMENT_POINT')" 
-                  [disabled]="match.idGanador || isLoading"
-                  class="w-full text-2xl py-4 bg-green-500 text-white font-bold rounded-lg ...">
+          <button (click)="updateScore('B', 'INCREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
             +1 Punto (B)
           </button>
-          <button (click)="updateScore('B', 'DECREMENT_POINT')"
-                  [disabled]="match.idGanador || isLoading"
-                  class="w-full py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg ...">
+          <button (click)="updateScore('B', 'DECREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
             -1 (B)
           </button>
         </div>
       </div>
     </div>
 
+    <form [formGroup]="noteForm" class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 mb-6">
+      <h3 class="font-heading text-2xl font-semibold mb-4 text-center">Faltas y Notas</h3>
+      
+      <div>
+        <label for="noteText" class="block text-sm font-medium text-gray-700">
+          Anotaciones del Juez (se guardará la última nota)
+        </label>
+        <textarea 
+          id="noteText"
+          formControlName="noteText"
+          rows="3"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm
+                 font-sans
+                 focus:outline-none focus:ring-unrobot-blue focus:border-unrobot-blue"
+          placeholder="Escribe aquí las faltas o notas del match..."
+        ></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mt-4">
+        <button 
+          type="button" 
+          (click)="addNote('A')"
+          [disabled]="estadoCalculado === 'FINALIZADO' || isLoading"
+          class="w-full py-2 bg-yellow-500 text-white font-semibold rounded-lg
+                 hover:bg-yellow-600 transition-colors disabled:bg-gray-400">
+          Reportar Nota (A)
+        </button>
+        <button 
+          type="button" 
+          (click)="addNote('B')"
+          [disabled]="estadoCalculado === 'FINALIZADO' || isLoading"
+          class="w-full py-2 bg-yellow-500 text-white font-semibold rounded-lg
+                 hover:bg-yellow-600 transition-colors disabled:bg-gray-400">
+          Reportar Nota (B)
+        </button>
+      </div>
+    </form>
+
     <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
       <h3 class="font-heading text-2xl font-semibold mb-4 text-center">Finalizar Match</h3>
       <div class="grid grid-cols-2 gap-4">
+        
         <button (click)="declareWinner(match.idEquipoA || null)"
-                [disabled]="!match.idEquipoA || !!match.idGanador || isLoading"
-                class="w-full py-3 bg-unrobot-blue text-white font-bold text-lg rounded-lg ...">
-          Declarar Ganador<br>({{ match.idEquipoA || 'N/A' }})
+                [disabled]="!match.idEquipoA || estadoCalculado === 'FINALIZADO' || isLoading"
+                class="w-full py-3 bg-unrobot-blue text-white font-bold text-lg rounded-lg
+                       hover:bg-opacity-90 transition-colors disabled:bg-gray-400">
+          Declarar Ganador<br>({{ teamAName }})
         </button>
+        
         <button (click)="declareWinner(match.idEquipoB || null)"
-                [disabled]="!match.idEquipoB || !!match.idGanador || isLoading"
-                class="w-full py-3 bg-unrobot-blue text-white font-bold text-lg rounded-lg ...">
-          Declarar Ganador<br>({{ match.idEquipoB || 'N/A' }})
+                [disabled]="!match.idEquipoB || estadoCalculado === 'FINALIZADO' || isLoading"
+                class="w-full py-3 bg-unrobot-blue text-white font-bold text-lg rounded-lg
+                       hover:bg-opacity-90 transition-colors disabled:bg-gray-400">
+          Declarar Ganador<br>({{ teamBName }})
         </button>
       </div>
     </div>

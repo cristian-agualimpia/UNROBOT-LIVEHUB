@@ -8,18 +8,30 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.UUID; // <-- ¡Asegúrate de importar UUID!
 
 @RestController
 @RequestMapping("/api/v1/enfrentamientos")
+// (Recuerda quitar @CrossOrigin si estás usando WebConfig)
 public class EnfrentamientoController {
 
     @Autowired
     private EnfrentamientoService enfrentamientoService;
 
+    
     /**
-     * ¡Endpoint Clave! Usado por el juez para reportar un evento
-     * (gol, falta, etc.) en un enfrentamiento.
+     * --- ¡NUEVO ENDPOINT! ---
+     * Obtiene un enfrentamiento específico por su ID.
+     * Útil para que el juez cargue los datos de un partido.
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<EnfrentamientoDTO> getEnfrentamientoById(@PathVariable UUID id) {
+        EnfrentamientoDTO enfrentamiento = enfrentamientoService.getEnfrentamientoById(id);
+        return ResponseEntity.ok(enfrentamiento);
+    }
+    
+    /**
+     * ¡Endpoint Clave! Usado por el juez para reportar un evento.
      */
     @PutMapping("/{id}/score")
     public ResponseEntity<EnfrentamientoDTO> updateScore(
@@ -32,8 +44,6 @@ public class EnfrentamientoController {
 
     /**
      * Endpoint para que el juez o admin establezca manualmente el ganador.
-     * El ID del ganador se pasa como parámetro de consulta.
-     * Ej: PUT /api/v1/enfrentamientos/{matchId}/winner?ganadorId={teamId}
      */
     @PutMapping("/{id}/winner")
     public ResponseEntity<EnfrentamientoDTO> setWinner(
@@ -45,8 +55,7 @@ public class EnfrentamientoController {
     }
 
     /**
-     * Obtiene todos los enfrentamientos de una categoría.
-     * Usado por el frontend para dibujar el árbol de llaves.
+     * Obtiene todos los enfrentamientos de una categoría (para las llaves).
      */
     @GetMapping("/categoria/{categoriaTipo}")
     public ResponseEntity<List<EnfrentamientoDTO>> getEnfrentamientosPorCategoria(
