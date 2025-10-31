@@ -12,7 +12,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/enfrentamientos")
-@CrossOrigin(origins = "*")
 public class EnfrentamientoController {
 
     @Autowired

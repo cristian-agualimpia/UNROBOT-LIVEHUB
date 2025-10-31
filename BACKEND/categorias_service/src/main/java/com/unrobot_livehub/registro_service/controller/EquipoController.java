@@ -1,6 +1,7 @@
 package com.unrobot_livehub.registro_service.controller;
 
 import com.unrobot_livehub.registro_service.dtos.EquipoDTO;
+import com.unrobot_livehub.registro_service.dtos.EquipoRegistroDTO;
 import com.unrobot_livehub.registro_service.service.EquipoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/equipos")
-@CrossOrigin(origins = "*")
 public class EquipoController {
 
     @Autowired
@@ -22,9 +22,10 @@ public class EquipoController {
      * Registra un nuevo equipo en una categoría.
      */
     @PostMapping
-    public ResponseEntity<EquipoDTO> createEquipo(@RequestBody EquipoDTO equipoDTO) {
-        EquipoDTO nuevoEquipo = equipoService.createEquipo(equipoDTO);
-        // Retornamos 201 CREATED
+    public ResponseEntity<EquipoDTO> createEquipo(
+            @RequestBody EquipoRegistroDTO equipoRegistroDTO // <-- Acepta el DTO de REGISTRO
+    ) {
+        EquipoDTO nuevoEquipo = equipoService.createEquipo(equipoRegistroDTO);
         return new ResponseEntity<>(nuevoEquipo, HttpStatus.CREATED);
     }
 

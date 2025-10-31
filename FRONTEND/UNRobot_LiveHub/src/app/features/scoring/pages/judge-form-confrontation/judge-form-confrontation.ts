@@ -1,4 +1,3 @@
-// --- CORRECCIÓN: Faltaban todos estos imports ---
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,7 +6,7 @@ import { BehaviorSubject, Observable, switchMap, catchError, EMPTY, tap } from '
 // Componentes y Servicios
 import { BackButtonComponent } from '../../../../shared/components/back-button/back-button';
 import { ConfrontationService, UpdateScoreDTO } from '../../services/confrontation.service';
-import { EnfrentamientoDTO } from '../../../../core/models/enfrentamiento.model'; // <-- Importar modelo
+import { EnfrentamientoDTO } from '../../../../core/models/enfrentamiento.model';
 
 @Component({
   selector: 'app-judge-form-confrontation',
@@ -18,14 +17,12 @@ import { EnfrentamientoDTO } from '../../../../core/models/enfrentamiento.model'
 })
 export class JudgeFormConfrontationComponent implements OnInit {
   
-  // --- CORRECCIÓN: Faltaban las inyecciones de servicios ---
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private confrontationService = inject(ConfrontationService);
 
   private matchId: string | null = null;
   
-  // (Esto ya lo habíamos corregido a 'public' la vez pasada)
   public matchSubject = new BehaviorSubject<EnfrentamientoDTO | null>(null);
   public match$ = this.matchSubject.asObservable();
 
@@ -33,30 +30,24 @@ export class JudgeFormConfrontationComponent implements OnInit {
   public errorMessage: string | null = null;
 
   ngOnInit(): void {
-    // 1. Obtener el ID del match de la URL
     this.matchId = this.route.snapshot.paramMap.get('matchId');
     if (!this.matchId) {
       this.errorMessage = "Error: No se proporcionó un ID de match.";
       this.isLoading = false;
       return;
     }
-
-    // 2. Cargar los datos iniciales del match
     this.loadMatchData();
   }
 
-  // Carga o recarga los datos del match desde el servicio
   loadMatchData(): void {
     if (!this.matchId) return;
 
     this.isLoading = true;
     this.confrontationService.getMatchById(this.matchId).subscribe({
-      // --- CORRECCIÓN: Añadir tipo a 'data' ---
       next: (data: EnfrentamientoDTO) => {
-        this.matchSubject.next(data); // Emite los datos
+        this.matchSubject.next(data);
         this.isLoading = false;
       },
-      // --- CORRECCIÓN: Añadir tipo a 'err' ---
       error: (err: any) => {
         this.errorMessage = "Error al cargar el enfrentamiento.";
         this.isLoading = false;
@@ -64,20 +55,19 @@ export class JudgeFormConfrontationComponent implements OnInit {
     });
   }
 
-  // Maneja las actualizaciones de puntaje
   updateScore(team: 'A' | 'B', action: 'INCREMENT_POINT' | 'DECREMENT_POINT'): void {
-    if (!this.matchId || this.matchSubject.value?.estado === 'FINALIZADO') return;
+    // Asumimos que el DTO del 'estado' no existe, así que lo calculamos
+    const estado = this.matchSubject.value?.idGanador ? 'FINALIZADO' : 'EN_CURSO';
+    if (!this.matchId || estado === 'FINALIZADO') return;
 
     this.isLoading = true;
     const payload: UpdateScoreDTO = { team, action };
     
     this.confrontationService.updateScore(this.matchId, payload).subscribe({
-      // --- CORRECCIÓN: Añadir tipo ---
       next: (updatedMatch: EnfrentamientoDTO) => {
-        this.matchSubject.next(updatedMatch); // Actualiza la UI con la respuesta
+        this.matchSubject.next(updatedMatch); 
         this.isLoading = false;
       },
-      // --- CORRECCIÓN: Añadir tipo ---
       error: (err: any) => {
         alert('Error al actualizar puntaje. ' + (err.error?.message || ''));
         this.isLoading = false;
@@ -87,22 +77,25 @@ export class JudgeFormConfrontationComponent implements OnInit {
 
   // Declara un ganador
   declareWinner(winnerId: string | null): void {
-    if (!this.matchId || !winnerId || this.matchSubject.value?.estado === 'FINALIZADO') return;
+    const estado = this.matchSubject.value?.idGanador ? 'FINALIZADO' : 'EN_CURSO';
+    if (!this.matchId || !winnerId || estado === 'FINALIZADO') return;
     
-    const winnerName = (this.matchSubject.value?.equipoA?.id === winnerId) 
-      ? this.matchSubject.value.equipoA.nombre 
-      : this.matchSubject.value?.equipoB?.nombre;
+    // --- CORRECCIÓN ---
+    // Ya no tenemos el 'nombre', así que mostramos el ID en la alerta.
+    // Esto es temporal. Si el endpoint 'getMatchById' SÍ devuelve los nombres,
+    // tendremos que crear un DTO diferente.
+    const winnerIdentifier = (this.matchSubject.value?.idEquipoA === winnerId) 
+      ? `Equipo (ID: ${winnerId})`
+      : `Equipo (ID: ${winnerId})`;
 
-    if (confirm(`¿Estás seguro de declarar a [${winnerName}] como ganador? Esta acción finalizará el match.`)) {
+    if (confirm(`¿Estás seguro de declarar a [${winnerIdentifier}] como ganador? Esta acción finalizará el match.`)) {
       this.isLoading = true;
       this.confrontationService.declareWinner(this.matchId, winnerId).subscribe({
-        // --- CORRECCIÓN: Añadir tipo ---
         next: (finalizedMatch: EnfrentamientoDTO) => {
-          this.matchSubject.next(finalizedMatch); // Actualiza la UI
+          this.matchSubject.next(finalizedMatch); 
           this.isLoading = false;
-          alert('Match finalizado. Ganador: ' + winnerName);
+          alert('Match finalizado. Ganador: ' + winnerIdentifier);
         },
-        // --- CORRECCIÓN: Añadir tipo ---
         error: (err: any) => {
           alert('Error al declarar ganador. ' + (err.error?.message || ''));
           this.isLoading = false;

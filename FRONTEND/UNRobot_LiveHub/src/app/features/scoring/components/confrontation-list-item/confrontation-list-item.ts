@@ -1,40 +1,59 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common'; // <-- Necesario para *ngIf, *ngFor, ngClass
-import { EnfrentamientoDTO, EstadoEnfrentamiento } from '../../../../core/models/enfrentamiento.model';
+// 1. Importar OnInit
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { EnfrentamientoDTO } from '../../../../core/models/enfrentamiento.model';
+
+type EstadoCalculado = 'PENDIENTE' | 'EN_CURSO' | 'FINALIZADO';
 
 @Component({
   selector: 'app-confrontation-list-item',
   standalone: true,
-  imports: [CommonModule], // <-- Importar CommonModule
+  imports: [CommonModule],
   templateUrl: './confrontation-list-item.html',
   styleUrls: ['./confrontation-list-item.css']
 })
-export class ConfrontationListItemComponent {
+// 2. Implementar OnInit
+export class ConfrontationListItemComponent implements OnInit {
 
-  // 1. Recibe el DTO completo del enfrentamiento
   @Input() matchData!: EnfrentamientoDTO;
-  
-  // 2. Emite el ID del match cuando el juez presiona "Puntuar"
   @Output() onScore = new EventEmitter<string>();
 
-  /**
-   * Emite el evento 'onScore' con el ID de este match.
-   */
+  // 3. Crear una propiedad para guardar el estado
+  public estadoCalculado!: EstadoCalculado;
+
+  // 4. Calcular el estado UNA SOLA VEZ cuando el componente se inicia
+  ngOnInit(): void {
+    if (this.matchData.idGanador) {
+      this.estadoCalculado = 'FINALIZADO';
+    } else if (this.matchData.puntosA > 0 || this.matchData.puntosB > 0) {
+      this.estadoCalculado = 'EN_CURSO';
+    } else {
+      this.estadoCalculado = 'PENDIENTE';
+    }
+  }
+
   scoreMatch(): void {
-    if (this.matchData.estado !== 'FINALIZADO') {
+    // 5. Usar la propiedad en lugar de la función
+    if (this.estadoCalculado !== 'FINALIZADO') {
       this.onScore.emit(this.matchData.id);
     }
   }
 
-  /**
-   * Helper para obtener el nombre del ganador.
-   */
+  // (El resto de los métodos 'get...Name()' están bien como estaban)
+  getEquipoAName(): string {
+    return this.matchData.idEquipoA || 'Equipo Pendiente';
+  }
+
+  getEquipoBName(): string {
+    return this.matchData.idEquipoB || 'Equipo Pendiente';
+  }
+
   getWinnerName(): string {
-    if (this.matchData.ganadorId === this.matchData.equipoA?.id) {
-      return this.matchData.equipoA.nombre;
+    if (this.matchData.idGanador === this.matchData.idEquipoA) {
+      return this.getEquipoAName();
     }
-    if (this.matchData.ganadorId === this.matchData.equipoB?.id) {
-      return this.matchData.equipoB.nombre;
+    if (this.matchData.idGanador === this.matchData.idEquipoB) {
+      return this.getEquipoBName();
     }
     return 'N/A';
   }

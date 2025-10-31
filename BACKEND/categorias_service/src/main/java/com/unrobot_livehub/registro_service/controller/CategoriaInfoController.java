@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/categorias-info")
-@CrossOrigin(origins = "*")
 public class CategoriaInfoController {
 
     @Autowired

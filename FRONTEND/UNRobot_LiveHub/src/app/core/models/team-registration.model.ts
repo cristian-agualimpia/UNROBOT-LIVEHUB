@@ -1,10 +1,17 @@
 /**
  * DTO para enviar al backend al crear un nuevo equipo.
- * Basado en HU03.
+ * Sincronizado con el JSON de prueba.
  */
 export interface CreateTeamDTO {
   nombre: string;
-  institucion: string;
+  institucion?: string; // Opcional (en tu entidad es nullable)
+  categoriaTipo: string;
+  
+  // Datos del Capitán
   nombreCapitan: string;
   emailCapitan: string;
+  telefonoCapitan?: string; // Opcional (en tu entidad es nullable)
+  
+  // Lista de Miembros
+  miembros: string[];
 }

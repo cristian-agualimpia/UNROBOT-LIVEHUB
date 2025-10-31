@@ -55,10 +55,10 @@ public enum CategoriaTipo {
             "Solo se permiten robots de kits prefabricados."
     ),
 
-    // --- 4. SEGUIDOR DE LÍNEA VELOCISTA AMATEUR (Lógica Velocista) ---
+    // --- 4. SEGUIDOR DE LÍNEA RONDA_INDIVIDUAL AMATEUR (Lógica RONDA_INDIVIDUAL) ---
     SEGUIDOR_LINEA_AMATEUR(
-            TipoLogica.VELOCISTA,
-            "Seguidor de Línea Velocista Amateur",
+            TipoLogica.RONDA_INDIVIDUAL,
+            "Seguidor de Línea RONDA_INDIVIDUAL Amateur",
             "Robot autónomo 'desde cero' (ej. Arduino) debe recorrer un circuito de línea negra sobre fondo blanco en el menor tiempo. Máximo 8 sensores.",
             "Pista plana de 183x244 cm. Fondo: Blanco Mate. Línea: Negro. Ancho de línea: 20 mm.",
             "Público General (Sin restricción de edad)",
@@ -69,10 +69,10 @@ public enum CategoriaTipo {
             "Descalificación si sale de pista por más de 5 seg."
     ),
 
-    // --- 5. SEGUIDOR DE LÍNEA VELOCISTA ESCOLAR (Lógica Velocista) ---
+    // --- 5. SEGUIDOR DE LÍNEA RONDA_INDIVIDUAL ESCOLAR (Lógica RONDA_INDIVIDUAL) ---
     SEGUIDOR_LINEA_ESCOLAR(
-            TipoLogica.VELOCISTA,
-            "Seguidor de Línea Velocista Escolar",
+            TipoLogica.RONDA_INDIVIDUAL,
+            "Seguidor de Línea RONDA_INDIVIDUAL Escolar",
             "Robot autónomo de kit (Lego, VEX, etc.) debe recorrer un circuito de línea negra sobre fondo blanco en el menor tiempo.",
             "Pista plana de 183x244 cm. Fondo: Blanco Mate. Línea: Negro. Ancho de línea: 20 mm.",
             "Escolar (Estudiantes de educación media, básica)",
@@ -83,10 +83,10 @@ public enum CategoriaTipo {
             "Fase Final: Los 4 más rápidos pasan a llaves."
     ),
 
-    // --- 6. SEGUIDOR DE LÍNEA MULTINIVEL (Lógica Velocista) ---
+    // --- 6. SEGUIDOR DE LÍNEA MULTINIVEL (Lógica RONDA_INDIVIDUAL) ---
     SEGUIDOR_LINEA_MULTINIVEL(
-            TipoLogica.VELOCISTA,
-            "Seguidor de Línea Velocista MULTINIVEL (Turbina)",
+            TipoLogica.RONDA_INDIVIDUAL,
+            "Seguidor de Línea RONDA_INDIVIDUAL MULTINIVEL (Turbina)",
             "Robot autónomo (plataforma no comercial) con turbina, debe recorrer una pista multinivel (blanco/negra) en el menor tiempo. La turbina debe estar encendida.",
             "Pista multinivel de 500x800 cm. Fondo: Blanco mate. Línea: Negro mate. Ancho: 20 mm. Puentes e inclinación máx 45°.",
             "Profesional (Categoría: Profesional)",
@@ -97,9 +97,9 @@ public enum CategoriaTipo {
             "La turbina DEBE estar encendida durante todo el recorrido."
     ),
 
-    // --- 7. DRONE RACE SIMULACIÓN (Lógica Velocista) ---
+    // --- 7. DRONE RACE SIMULACIÓN (Lógica RONDA_INDIVIDUAL) ---
     DRONE_RACE_SIM(
-            TipoLogica.VELOCISTA,
+            TipoLogica.RONDA_INDIVIDUAL,
             "Drone Race Ultimate (Simulación)",
             "Completar la simulación de un circuito en el simulador LIFTOFF en el menor tiempo posible usando drones (virtuales) 5 pulgadas.",
             "Simulador LIFTOFF. El evento proporciona el simulador y control.",
@@ -111,9 +111,9 @@ public enum CategoriaTipo {
             "Ronda final: 5 heats oficiales, se toma el mejor tiempo."
     ),
 
-    // --- 8. DRONE RACE TINY (Lógica Velocista) ---
+    // --- 8. DRONE RACE TINY (Lógica RONDA_INDIVIDUAL) ---
     DRONE_RACE_TINY(
-            TipoLogica.VELOCISTA,
+            TipoLogica.RONDA_INDIVIDUAL,
             "Drone Race Ultimate (Tiny)",
             "Completar un circuito físico en el menor tiempo posible usando drones tiny (reales).",
             "Circuito físico de 500x500x500m. Se usará arquitectura urbana (espacio semicerrado) para posicionar los gates.",
@@ -125,9 +125,9 @@ public enum CategoriaTipo {
             "Rondas sucesivas hasta determinar 4 finalistas."
     ),
 
-    // --- 9. ROVER RC EXPLORADOR (Lógica Velocista, score-based) ---
+    // --- 9. ROVER RC EXPLORADOR (Lógica RONDA_INDIVIDUAL, score-based) ---
     ROVER_RC_EXPLORADOR(
-            TipoLogica.VELOCISTA, // Se usa la lógica de Ronda (1 jugador) pero 'tiempoMs' se usará como 'puntos'
+            TipoLogica.RONDA_INDIVIDUAL, // Se usa la lógica de Ronda (1 jugador) pero 'tiempoMs' se usará como 'puntos'
             "Rover RC Explorador",
             "Diseñar y operar un robot tipo rover RC capaz de desplazarse por terreno irregular y superar retos de exploración (recoger muestra, transportar objetos, navegar).",
             "Terreno irregular, obstáculos naturales, puntos designados. Pista no estándar.",
@@ -139,9 +139,9 @@ public enum CategoriaTipo {
             "Dimensiones máx: 30x30x30 cm. Peso máx: 10 kg."
     ),
 
-    // --- 10. INNOVATION CHALLENGE (Lógica Velocista, score-based) ---
+    // --- 10. INNOVATION CHALLENGE (Lógica RONDA_INDIVIDUAL, score-based) ---
     INNOVATION_CHALLENGE(
-            TipoLogica.VELOCISTA, // Se usa la lógica de Ronda (1 equipo) pero 'tiempoMs' se usará como 'puntaje de pitch'
+            TipoLogica.RONDA_INDIVIDUAL, // Se usa la lógica de Ronda (1 equipo) pero 'tiempoMs' se usará como 'puntaje de pitch'
             "Innovation Challenge",
             "Elaborar una propuesta de proyecto para dar una solución tecnológica e ingenieril enfocada en género, cuidado y accesibilidad. Presentación en modalidad 'pitch'.",
             "No aplica (Es una presentación/pitch).",
@@ -155,11 +155,11 @@ public enum CategoriaTipo {
     /**
      * Define qué lógica de servicio se debe usar para esta categoría.
      * ENFRENTAMIENTO = Usa EnfrentamientoService (2 equipos, puntos A/B)
-     * VELOCISTA = Usa RondaVelocistaService (1 equipo, tiempo o puntos)
+     * RONDA_INDIVIDUAL = Usa RondaRONDA_INDIVIDUALService (1 equipo, tiempo o puntos)
      */
     public enum TipoLogica {
         ENFRENTAMIENTO, // Lógica 1v1 (Bolabot, Sumo)
-        VELOCISTA       // Lógica 1-jugador (Seguidor, Drones, Rover, Innovation)
+        RONDA_INDIVIDUAL       // Lógica 1-jugador (Seguidor, Drones, Rover, Innovation)
     }
 
     // --- Campos del Enum ---

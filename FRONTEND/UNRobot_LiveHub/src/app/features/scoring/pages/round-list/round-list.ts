@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common'; // <-- Necesario para *ngIf, *ngFor, async
+import { CommonModule } from '@angular/common'; 
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, BehaviorSubject, switchMap, EMPTY, tap, catchError } from 'rxjs';
+import { finalize } from 'rxjs'; // Importamos finalize
 
 // Modelos
 import { EnfrentamientoDTO } from '../../../../core/models/enfrentamiento.model';
@@ -11,7 +11,7 @@ import { RondaIndividualDTO } from '../../../../core/models/ronda-individual.mod
 import { ConfrontationService } from '../../services/confrontation.service';
 import { IndividualRoundService } from '../../services/individual-round.service';
 
-// "Mini-componentes" que creamos
+// "Mini-componentes"
 import { ConfrontationListItemComponent } from '../../components/confrontation-list-item/confrontation-list-item';
 import { IndividualRoundListItemComponent } from '../../components/individual-round-list-item/individual-round-list-item';
 
@@ -31,28 +31,27 @@ import { BackButtonComponent } from '../../../../shared/components/back-button/b
   styleUrls: ['./round-list.css']
 })
 export class RoundListComponent implements OnInit {
-  // Inyección de servicios
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private confrontationService = inject(ConfrontationService);
   private individualRoundService = inject(IndividualRoundService);
 
-  // Almacena los parámetros de la URL
   public categoryType: 'ENFRENTAMIENTO' | 'RONDA_INDIVIDUAL' | null = null;
   public categoryId: string | null = null;
   
-  // Sujeto para refrescar los datos (ej. después de generar llaves)
-  private refreshData$ = new BehaviorSubject<void>(undefined);
-
-  // Observables para las listas de datos
-  public matches$!: Observable<EnfrentamientoDTO[]>;
-  public rounds$!: Observable<RondaIndividualDTO[]>;
+  // --- CAMBIO: Ya no usamos Observables (matches$) ---
+  // Usamos arreglos locales para guardar los datos.
+  public matches: EnfrentamientoDTO[] = [];
+  public rounds: RondaIndividualDTO[] = [];
   
-  public isLoading = false;
+  // --- CAMBIO: 'isLoading' ahora es 'isBusy' para evitar conflictos ---
+  // y lo usaremos solo para los botones
+  public isBusy = false; 
   public errorMessage: string | null = null;
+  // Para saber si ya cargamos datos por primera vez
+  public dataLoaded = false; 
 
   ngOnInit(): void {
-    // 1. Leer los parámetros de la URL
     this.categoryId = this.route.snapshot.paramMap.get('categoryId');
     const type = this.route.snapshot.paramMap.get('categoryType');
 
@@ -62,95 +61,96 @@ export class RoundListComponent implements OnInit {
     }
     
     this.categoryType = type as 'ENFRENTAMIENTO' | 'RONDA_INDIVIDUAL';
+    
+    // --- CAMBIO: Ya no cargamos datos automáticamente ---
+    // El usuario debe presionar el botón
+  }
 
-    // 2. Cargar los datos basado en el tipo de lógica
+  // --- NUEVO MÉTODO: Se llama desde el botón "Cargar" ---
+  public loadData(): void {
+    if (!this.categoryId) return;
+
+    this.isBusy = true;
+    this.errorMessage = null;
+    this.dataLoaded = true; // Marcamos que el intento de carga se hizo
+
     if (this.categoryType === 'ENFRENTAMIENTO') {
-      this.loadMatches();
+      this.confrontationService.getMatchesByCategory(this.categoryId)
+        .pipe(finalize(() => this.isBusy = false))
+        .subscribe({
+          next: (data) => {
+            this.matches = data; // Guardamos los datos en el arreglo local
+          },
+          error: (err) => {
+            this.errorMessage = 'Error al cargar los enfrentamientos.';
+            this.matches = []; // Vaciamos en caso de error
+          }
+        });
     } else if (this.categoryType === 'RONDA_INDIVIDUAL') {
-      this.loadIndividualRounds();
+      this.individualRoundService.getRoundsByCategory(this.categoryId)
+        .pipe(finalize(() => this.isBusy = false))
+        .subscribe({
+          next: (data) => {
+            this.rounds = data; // Guardamos los datos en el arreglo local
+          },
+          error: (err) => {
+            this.errorMessage = 'Error al cargar las rondas.';
+            this.rounds = []; // Vaciamos en caso de error
+          }
+        });
     }
   }
 
-  // Carga la lista de enfrentamientos
-  private loadMatches(): void {
-    if (!this.categoryId) return;
-    
-    this.matches$ = this.refreshData$.pipe(
-      tap(() => this.isLoading = true),
-      switchMap(() => this.confrontationService.getMatchesByCategory(this.categoryId!)),
-      tap(() => this.isLoading = false),
-      catchError(err => {
-        this.errorMessage = 'Error al cargar los enfrentamientos.';
-        this.isLoading = false;
-        return EMPTY; // No emite nada si hay error
-      })
-    );
-  }
 
-  // Carga la lista de rondas individuales
-  private loadIndividualRounds(): void {
-    if (!this.categoryId) return;
+  // --- MÉTODOS DE ACCIÓN (Actualizados) ---
 
-    this.rounds$ = this.refreshData$.pipe(
-      tap(() => this.isLoading = true),
-      switchMap(() => this.individualRoundService.getRoundsByCategory(this.categoryId!)),
-      tap(() => this.isLoading = false),
-      catchError(err => {
-        this.errorMessage = 'Error al cargar las rondas individuales.';
-        this.isLoading = false;
-        return EMPTY;
-      })
-    );
-  }
-
-  // --- Métodos de Acción para los Botones ---
-
-  // Llama al servicio para generar llaves (solo enfrentamientos)
   generateBrackets(): void {
-    if (!this.categoryId) return;
+    if (!this.categoryId || this.isBusy) return;
     
     if (confirm('¿Estás seguro de que deseas generar las llaves? Esta acción no se puede deshacer.')) {
-      this.isLoading = true;
-      this.confrontationService.generateBrackets(this.categoryId).subscribe({
-        next: () => {
-          alert('Llaves generadas exitosamente.');
-          this.refreshData$.next(); // Refresca la lista
-        },
-        error: (err) => {
-          this.errorMessage = 'Error al generar llaves. ' + (err.error?.message || '');
-          this.isLoading = false;
-        }
-      });
+      this.isBusy = true; 
+      this.errorMessage = null;
+      
+      this.confrontationService.generateBrackets(this.categoryId)
+        .pipe(finalize(() => this.isBusy = false)) // Nos aseguramos de que 'isBusy' se apague
+        .subscribe({
+          next: () => {
+            alert('Llaves generadas exitosamente.');
+            this.loadData(); // Refrescamos la lista automáticamente
+          },
+          error: (err) => {
+            this.errorMessage = 'Error al generar llaves. ' + (err.error?.message || 'Revisa la consola.');
+          }
+        });
     }
   }
 
-  // Llama al servicio para avanzar de ronda (solo enfrentamientos)
   advanceRound(): void {
-    if (!this.categoryId) return;
+    if (!this.categoryId || this.isBusy) return;
     
     if (confirm('¿Estás seguro de avanzar a la siguiente ronda? Todos los matches de la ronda actual deben estar finalizados.')) {
-      this.isLoading = true;
-      this.confrontationService.advanceRound(this.categoryId).subscribe({
-        next: () => {
-          alert('Se ha avanzado a la siguiente ronda.');
-          this.refreshData$.next(); // Refresca la lista
-        },
-        error: (err) => {
-          this.errorMessage = 'Error al avanzar de ronda. ' + (err.error?.message || '');
-          this.isLoading = false;
-        }
-      });
+      this.isBusy = true;
+      this.errorMessage = null;
+      
+      this.confrontationService.advanceRound(this.categoryId)
+        .pipe(finalize(() => this.isBusy = false))
+        .subscribe({
+          next: () => {
+            alert('Se ha avanzado a la siguiente ronda.');
+            this.loadData(); // Refrescamos la lista automáticamente
+          },
+          error: (err) => {
+            this.errorMessage = 'Error al avanzar de ronda. ' + (err.error?.message || '');
+          }
+        });
     }
   }
   
-  // --- Métodos de Navegación (llamados desde los mini-componentes) ---
-
-  // Navega al formulario de puntuación de Enfrentamiento
+  // --- Métodos de Navegación (Sin cambios) ---
   navigateToMatchScoring(matchId: string): void {
     this.router.navigate(['/scoring/judge/match', matchId]);
   }
 
-  // Navega al formulario de puntuación Individual
   navigateToRoundScoring(roundId: string): void {
     this.router.navigate(['/scoring/judge/individual', roundId]);
   }

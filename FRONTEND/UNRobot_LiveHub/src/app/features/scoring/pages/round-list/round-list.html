@@ -5,67 +5,67 @@
     Rondas para: <span class="text-brand-dark">{{ categoryId }}</span>
   </h1>
 
-  <div *ngIf="categoryType === 'ENFRENTAMIENTO'" class="mb-6 p-4 bg-gray-100 rounded-lg shadow-sm">
-    <h2 class="font-heading text-xl font-semibold mb-3">Acciones de Categoría</h2>
-    <div class="flex space-x-4">
-      <button 
-        (click)="generateBrackets()"
-        [disabled]="isLoading"
-        class="bg-unrobot-gold text-brand-dark font-bold py-2 px-4 rounded-lg
-               font-heading hover:bg-opacity-90 transition-all
-               disabled:bg-gray-400">
-        Generar Llaves
-      </button>
-      <button 
-        (click)="advanceRound()"
-        [disabled]="isLoading"
-        class="bg-brand-dark text-white font-bold py-2 px-4 rounded-lg
-               font-heading hover:bg-opacity-90 transition-all
-               disabled:bg-gray-400">
-        Avanzar Ronda
-      </button>
-    </div>
+  <div *ngIf="categoryType === 'ENFRENTAMIENTO'" class="mb-6 p-4 bg-gray-100 rounded-lg shadow-sm flex space-x-4">
+    <button 
+      (click)="generateBrackets()"
+      [disabled]="isBusy"
+      class="bg-unrobot-gold text-brand-dark font-bold py-2 px-4 rounded-lg
+             font-heading hover:bg-opacity-90 transition-all
+             disabled:bg-gray-400 disabled:cursor-not-allowed">
+      {{ isBusy ? 'Procesando...' : 'Generar Llaves' }}
+    </button>
+    <button 
+      (click)="advanceRound()"
+      [disabled]="isBusy"
+      class="bg-brand-dark text-white font-bold py-2 px-4 rounded-lg
+             font-heading hover:bg-opacity-90 transition-all
+             disabled:bg-gray-400 disabled:cursor-not-allowed">
+      {{ isBusy ? 'Procesando...' : 'Avanzar Ronda' }}
+    </button>
   </div>
 
-  <div *ngIf="isLoading" class="text-center p-8">
-    <p class="font-sans text-lg text-gray-600">Cargando rondas...</p>
-    </div>
+  <div class="mb-6">
+    <button 
+      (click)="loadData()"
+      [disabled]="isBusy"
+      class="w-full py-3 px-5 bg-unrobot-blue text-white font-bold rounded-lg
+             font-heading text-lg hover:bg-opacity-90 transition-all
+             disabled:bg-gray-400 disabled:cursor-not-allowed">
+      {{ isBusy ? 'Cargando...' : 'Cargar/Actualizar Rondas' }}
+    </button>
+  </div>
 
   <div *ngIf="errorMessage" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
     <p class="font-bold">Error</p>
     <p>{{ errorMessage }}</p>
   </div>
 
-
-  <div *ngIf="!isLoading && !errorMessage">
-    
-    <div *ngIf="categoryType === 'ENFRENTAMIENTO' && (matches$ | async) as matches">
-      <div *ngIf="matches.length > 0; else emptyState" class="space-y-4">
-        
-        <app-confrontation-list-item
-          *ngFor="let match of matches"
-          [matchData]="match"
-          (onScore)="navigateToMatchScoring($event)">
-        </app-confrontation-list-item>
-        
-      </div>
+  <div *ngIf="categoryType === 'ENFRENTAMIENTO'">
+    <div *ngIf="matches.length > 0; else emptyState" class="space-y-4">
+      
+      <app-confrontation-list-item
+        *ngFor="let match of matches" 
+        [matchData]="match"
+        (onScore)="navigateToMatchScoring($event)">
+      </app-confrontation-list-item>
+      
     </div>
-    
-    <div *ngIf="categoryType === 'RONDA_INDIVIDUAL' && (rounds$ | async) as rounds">
-      <div *ngIf="rounds.length > 0; else emptyState" class="space-y-4">
-        
-        <app-individual-round-list-item
-          *ngFor="let round of rounds"
-          [roundData]="round"
-          (onScore)="navigateToRoundScoring($event)">
-        </app-individual-round-list-item>
-        
-      </div>
+  </div>
+  
+  <div *ngIf="categoryType === 'RONDA_INDIVIDUAL'">
+    <div *ngIf="rounds.length > 0; else emptyState" class="space-y-4">
+      
+      <app-individual-round-list-item
+        *ngFor="let round of rounds"
+        [roundData]="round"
+        (onScore)="navigateToRoundScoring($event)">
+      </app-individual-round-list-item>
+      
     </div>
   </div>
 
   <ng-template #emptyState>
-    <div *ngIf="!isLoading" class="text-center p-12 bg-gray-50 rounded-lg">
+    <div *ngIf="dataLoaded && !isBusy" class="text-center p-12 bg-gray-50 rounded-lg">
       <p class="font-sans text-lg text-gray-500">
         No hay rondas/matches para mostrar.
       </p>

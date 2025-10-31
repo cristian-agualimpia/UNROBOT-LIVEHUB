@@ -6,7 +6,13 @@ import { EnfrentamientoDTO } from '../../../core/models/enfrentamiento.model';
 // DTO para la acción de puntaje
 export interface UpdateScoreDTO {
   team: 'A' | 'B';
-  action: 'INCREMENT_POINT' | 'DECREMENT_POINT'; // Asumimos que la API soporta DECREMENT
+  action: 'INCREMENT_POINT' | 'DECREMENT_POINT';
+}
+
+// --- NUEVO DTO ---
+// DTO para los endpoints del bracket (generar/avanzar)
+export interface BracketActionDTO {
+  categoriaTipo: string;
 }
 
 @Injectable({
@@ -18,26 +24,35 @@ export class ConfrontationService {
 
   /**
    * GET /api/v1/enfrentamientos/categoria/{categoriaTipo}
+   * Obtiene la lista de todos los enfrentamientos para una categoría.
    */
   getMatchesByCategory(categoryId: string): Observable<EnfrentamientoDTO[]> {
     return this.http.get<EnfrentamientoDTO[]>(`/enfrentamientos/categoria/${categoryId}`);
   }
 
+  // --- MÉTODO CORREGIDO ---
   /**
-   * POST /api/v1/enfrentamientos/generar-llaves/{categoriaTipo}
+   * POST /api/v1/bracket/generar-inicial
+   * Solicita al backend que genere las llaves (brackets) iniciales.
+   * Envía un body: { "categoriaTipo": "..." }
    */
   generateBrackets(categoryId: string): Observable<void> {
-    return this.http.post<void>(`/enfrentamientos/generar-llaves/${categoryId}`, {});
+    const payload: BracketActionDTO = { categoriaTipo: categoryId };
+    // El interceptor añade /api/v1
+    return this.http.post<void>(`/bracket/generar-inicial`, payload);
   }
 
+  // --- MÉTODO CORREGIDO (Asumido) ---
   /**
-   * POST /api/v1/enfrentamientos/avanzar-ronda/{categoriaTipo}
+   * POST /api/v1/bracket/avanzar-ronda
+   * Le dice al backend que finalice la ronda actual y genere la siguiente.
+   * Asumimos que sigue el mismo patrón que /generar-inicial
    */
   advanceRound(categoryId: string): Observable<void> {
-    return this.http.post<void>(`/enfrentamientos/avanzar-ronda/${categoryId}`, {});
+    const payload: BracketActionDTO = { categoriaTipo: categoryId };
+    // El interceptor añade /api/v1
+    return this.http.post<void>(`/bracket/avanzar-ronda`, payload);
   }
-
-  // --- NUEVOS MÉTODOS ---
 
   /**
    * GET /api/v1/enfrentamientos/{id}

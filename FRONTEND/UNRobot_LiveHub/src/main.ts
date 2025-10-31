@@ -1,3 +1,4 @@
+import 'zone.js'; // <-- AÑADE ESTA LÍNEA
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 // CORREGIDO: Asegúrate de que importa AppComponent

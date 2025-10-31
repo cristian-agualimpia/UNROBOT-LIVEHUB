@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/bracket")
-@CrossOrigin(origins = "*")
 public class BracketController {
 
     @Autowired

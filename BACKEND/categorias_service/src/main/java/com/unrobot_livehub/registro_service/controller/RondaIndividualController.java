@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/rondas-individuales")
-@CrossOrigin(origins = "*")
 public class RondaIndividualController {
 
     @Autowired

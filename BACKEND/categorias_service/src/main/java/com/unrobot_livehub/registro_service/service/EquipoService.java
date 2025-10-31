@@ -1,6 +1,7 @@
 package com.unrobot_livehub.registro_service.service;
 
 import com.unrobot_livehub.registro_service.dtos.EquipoDTO;
+import com.unrobot_livehub.registro_service.dtos.EquipoRegistroDTO;
 import com.unrobot_livehub.registro_service.entity.CategoriaTipo;
 import com.unrobot_livehub.registro_service.entity.Equipo;
 import com.unrobot_livehub.registro_service.repository.EquipoRepository;
@@ -21,16 +22,23 @@ public class EquipoService {
     /**
      * Registra un nuevo equipo.
      */
-    public EquipoDTO createEquipo(EquipoDTO equipoDTO) {
-        // Validación del Enum
-        CategoriaTipo categoria = CategoriaTipo.valueOf(equipoDTO.getCategoriaTipo());
+    public EquipoDTO createEquipo(EquipoRegistroDTO registroDTO) { // <-- Recibe DTO de Registro
+        CategoriaTipo categoria = CategoriaTipo.valueOf(registroDTO.getCategoriaTipo().toUpperCase());
         
         Equipo equipo = new Equipo();
-        equipo.setNombre(equipoDTO.getNombre());
-        equipo.setInstitucion(equipoDTO.getInstitucion());
+        
+        // Mapeo COMPLETO desde el DTO de Registro a la Entidad
+        equipo.setNombre(registroDTO.getNombre());
+        equipo.setInstitucion(registroDTO.getInstitucion());
         equipo.setCategoria(categoria);
+        equipo.setNombreCapitan(registroDTO.getNombreCapitan());
+        equipo.setEmailCapitan(registroDTO.getEmailCapitan());
+        equipo.setTelefonoCapitan(registroDTO.getTelefonoCapitan());
+        equipo.setMiembros(registroDTO.getMiembros());
 
         Equipo equipoGuardado = equipoRepository.save(equipo);
+        
+        // Devuelve la versión PÚBLICA (usando el convertToDTO de abajo)
         return convertToDTO(equipoGuardado);
     }
 

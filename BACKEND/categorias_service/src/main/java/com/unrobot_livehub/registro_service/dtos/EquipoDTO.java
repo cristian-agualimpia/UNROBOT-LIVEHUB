@@ -23,6 +23,7 @@ public class EquipoDTO {
     // Usamos el String del nombre del Enum para la transferencia (simple y robusto)
     // Ej: "BOLABOT_SENIOR"
     private String categoriaTipo; 
+    
 
     // (Puedes agregar más campos si los necesitas)
 }

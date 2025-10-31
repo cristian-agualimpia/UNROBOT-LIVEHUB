@@ -6,14 +6,14 @@ import { judgeAuthGuard } from './core/guards/judge-auth.guard';
 // --- Componentes Principales (Páginas) ---
 // CORREGIDO: Se quitó .component de las rutas
 import { LandingComponent } from './features/landing/landing';
-//import { TeamRegistrationComponent } from './features/team-registration/team-registration';
+import { TeamRegistrationComponent } from './features/team-registration/team-registration';
 
 // --- Componentes del Flujo de Scoring ---
 // CORREGIDO: Se quitó .component de las rutas
-//import { ScoringHubComponent } from './features/scoring/pages/scoring-hub/scoring-hub';
-//import { RoundListComponent } from './features/scoring/pages/round-list/round-list';
-//import { JudgeFormConfrontationComponent } from './features/scoring/pages/judge-form-confrontation/judge-form-confrontation';
-//import { JudgeFormIndividualComponent } from './features/scoring/pages/judge-form-individual/judge-form-individual';
+import { ScoringHubComponent } from './features/scoring/pages/scoring-hub/scoring-hub';
+import { RoundListComponent } from './features/scoring/pages/round-list/round-list';
+import { JudgeFormConfrontationComponent } from './features/scoring/pages/judge-form-confrontation/judge-form-confrontation';
+import { JudgeFormIndividualComponent } from './features/scoring/pages/judge-form-individual/judge-form-individual';
 
 export const routes: Routes = [
   // --- Ruta de Bienvenida (Pública) ---
@@ -24,7 +24,7 @@ export const routes: Routes = [
   },
 
   // --- Ruta de Registro de Equipos (Protegida) ---
-/*  {
+  {
     path: 'register-team',
     component: TeamRegistrationComponent,
     canActivate: [judgeAuthGuard], 
@@ -56,7 +56,7 @@ export const routes: Routes = [
     canActivate: [judgeAuthGuard],
     title: 'Puntuar Ronda Individual',
   },
-*/
+
   // --- Wildcard Route ---
   {
     path: '**',
