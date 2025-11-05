@@ -11,37 +11,66 @@
 
   <div *ngIf="match$ | async as match">
     
-    <div *ngIf="isLoading" class="fixed top-1/2 left-1/2 ...">Cargando...</div>
-    <div *ngIf="estadoCalculado === 'FINALIZADO'" class="bg-green-100 ...">
-      <p class="font-bold text-lg">Match Finalizado</p>
-    </div>
-    <div class="text-center mb-6">
-      <h1 class="font-heading ...">{{ match.categoriaTipo }}</h1>
-      <p class="font-sans ...">Ronda {{ match.etiquetaRonda }}</p>
-    </div>
-    <div class="grid grid-cols-3 items-center text-center mb-8">
-      <h2 class="font-heading ...">{{ teamAName }}</h2>
-      <div class="font-sans ...">{{ match.puntosA }} - {{ match.puntosB }}</div>
-      <h2 class="font-heading ...">{{ teamBName }}</h2>
+    <div *ngIf="isLoading" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-70 text-white p-4 rounded-lg z-50">
+      Cargando...
     </div>
 
+    <div *ngIf="estadoCalculado === 'FINALIZADO'" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+      <p class="font-bold text-lg">Match Finalizado</p>
+      <p>Este match ha concluido. No se pueden registrar más acciones.</p>
+    </div>
+
+    <div class="text-center mb-6">
+      <h1 class="font-heading text-4xl font-bold text-unrobot-blue">
+        {{ match.categoriaTipo }}
+      </h1>
+      <p class="font-sans text-xl text-gray-700">
+        Ronda {{ match.etiquetaRonda }}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-3 items-center text-center mb-8">
+      <h2 class="font-heading text-3xl font-bold text-brand-dark truncate">
+        {{ teamAName }}
+      </h2>
+      <div class="font-sans font-black text-7xl text-unrobot-blue">
+        {{ match.puntosA }} - {{ match.puntosB }}
+      </div>
+      <h2 class="font-heading text-3xl font-bold text-brand-dark truncate">
+        {{ teamBName }}
+      </h2>
+    </div>
 
     <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 mb-6">
       <h3 class="font-heading text-2xl font-semibold mb-4 text-center">Controles de Puntuación</h3>
       <div class="grid grid-cols-2 gap-4">
+        
         <div class="space-y-3">
-          <button (click)="updateScore('A', 'INCREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
+          <button (click)="updateScore('A', 'INCREMENT_POINT')" 
+                  [disabled]="estadoCalculado === 'FINALIZADO' || isLoading"
+                  class="w-full text-2xl py-4 bg-green-500 text-white font-bold rounded-lg
+                         hover:bg-green-600 transition-colors disabled:bg-gray-400">
             +1 Punto (A)
           </button>
-          <button (click)="updateScore('A', 'DECREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
+          <button (click)="updateScore('A', 'DECREMENT_POINT')" 
+                  [disabled]="estadoCalculado === 'FINALIZADO' || isLoading"
+                  class="w-full py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg
+                         hover:bg-gray-300 transition-colors disabled:bg-gray-400">
             -1 (A)
           </button>
         </div>
+
         <div class="space-y-3">
-          <button (click)="updateScore('B', 'INCREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
+          <button (click)="updateScore('B', 'INCREMENT_POINT')" 
+                  [disabled]="estadoCalculado === 'FINALIZADO' || isLoading"
+                  class="w-full text-2xl py-4 bg-green-500 text-white font-bold rounded-lg
+                         hover:bg-green-600 transition-colors disabled:bg-gray-400">
             +1 Punto (B)
           </button>
-          <button (click)="updateScore('B', 'DECREMENT_POINT')" [disabled]="estadoCalculado === 'FINALIZADO' || isLoading" class="w-full ...">
+          <button (click)="updateScore('B', 'DECREMENT_POINT')"
+                  [disabled]="estadoCalculado === 'FINALIZADO' || isLoading"
+                  class="w-full py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg
+                         hover:bg-gray-300 transition-colors disabled:bg-gray-400">
             -1 (B)
           </button>
         </div>
@@ -50,7 +79,6 @@
 
     <form [formGroup]="noteForm" class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 mb-6">
       <h3 class="font-heading text-2xl font-semibold mb-4 text-center">Faltas y Notas</h3>
-      
       <div>
         <label for="noteText" class="block text-sm font-medium text-gray-700">
           Anotaciones del Juez (se guardará la última nota)
@@ -65,7 +93,6 @@
           placeholder="Escribe aquí las faltas o notas del match..."
         ></textarea>
       </div>
-
       <div class="grid grid-cols-2 gap-4 mt-4">
         <button 
           type="button" 

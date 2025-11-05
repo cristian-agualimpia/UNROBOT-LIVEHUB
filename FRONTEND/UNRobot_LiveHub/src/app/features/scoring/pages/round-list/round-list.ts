@@ -1,21 +1,24 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common'; 
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize, Observable } from 'rxjs'; 
+// CORRECCIÓN: Importar 'switchMap' y 'BehaviorSubject'
+import { finalize, Observable, BehaviorSubject, switchMap } from 'rxjs'; 
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
-// Modelos
+// CORRECCIÓN DE RUTA: ../../../../ (4 puntos)
 import { RondaIndividualDTO } from '../../../../core/models/ronda-individual.model';
 import { EnfrentamientoListItemDTO } from '../../../../core/models/enfrentamiento-list-item.model';
 import { EquipoDTO } from '../../../../core/models/equipo.model'; 
+// CORRECCIÓN: Importar 'LeaderboardEntryDTO' desde el servicio
+import { IndividualRoundService, CreateRondaIndividualDTO, LeaderboardEntryDTO } from '../../services/individual-round.service'; 
 
 // Servicios
 import { ConfrontationService } from '../../services/confrontation.service';
-import { IndividualRoundService, CreateRondaIndividualDTO } from '../../services/individual-round.service';
 import { TeamService } from '../../../team-registration/services/team.service'; 
 
-// Componentes
+// "Mini-componentes"
 import { ConfrontationListItemComponent } from '../../components/confrontation-list-item/confrontation-list-item';
+import { VelocistaMatchItemComponent } from '../../components/velocista-match-item/velocista-match-item'; 
 import { BackButtonComponent } from '../../../../shared/components/back-button/back-button';
 
 @Component({
@@ -25,12 +28,15 @@ import { BackButtonComponent } from '../../../../shared/components/back-button/b
     CommonModule,
     ReactiveFormsModule, 
     ConfrontationListItemComponent,
+    VelocistaMatchItemComponent, 
     BackButtonComponent
+    // IndividualRoundListItemComponent ya no se usa aquí
   ],
   templateUrl: './round-list.html',
   styleUrls: ['./round-list.css']
 })
 export class RoundListComponent implements OnInit {
+  // --- Inyecciones ---
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder); 
@@ -38,24 +44,33 @@ export class RoundListComponent implements OnInit {
   private individualRoundService = inject(IndividualRoundService);
   private teamService = inject(TeamService); 
 
+  // --- Propiedades de Estado ---
   public categoryType: 'ENFRENTAMIENTO' | 'RONDA_INDIVIDUAL' | null = null;
   public categoryId: string | null = null;
-  
+  public isVelocistaCategory = false; 
+  public isBusy = false; 
+  public errorMessage: string | null = null;
+
+  // --- Lógica de Enfrentamiento (Fase 1) ---
   public matches: EnfrentamientoListItemDTO[] = [];
   public dataLoaded = false; 
 
+  // --- Lógica de Ronda Individual (Fase 1 y Simple) ---
   public createRoundForm: FormGroup;
-  public teams$!: Observable<EquipoDTO[]>; 
+  public teams$!: Observable<EquipoDTO[]>;
+  public leaderboard$!: Observable<LeaderboardEntryDTO[]>; 
   
-  public isBusy = false; 
-  public errorMessage: string | null = null;
+  // --- Lógica de Finales (Fase 3 y 5) ---
+  private refreshBrackets$ = new BehaviorSubject<void>(undefined);
+  public finalBrackets$!: Observable<EnfrentamientoListItemDTO[]>; 
+
 
   constructor() {
     this.createRoundForm = this.fb.group({
       idEquipo: ['', Validators.required],
       tiempoMs: [0, [Validators.required, Validators.min(0)]],
       penalizaciones: [0, [Validators.required, Validators.min(0)]],
-      etiquetaRonda: ['Clasificatoria-1', Validators.required]
+      etiquetaRonda: ['Intento', Validators.required]
     });
   }
 
@@ -71,16 +86,24 @@ export class RoundListComponent implements OnInit {
     this.categoryType = type as 'ENFRENTAMIENTO' | 'RONDA_INDIVIDUAL';
 
     if (this.categoryType === 'RONDA_INDIVIDUAL') {
+      if (this.categoryId.startsWith('SEGUIDOR') || this.categoryId.startsWith('DRONE')) {
+        this.isVelocistaCategory = true;
+      }
+      
       this.teams$ = this.teamService.getTeamsByCategory(this.categoryId!);
+
+      if (this.isVelocistaCategory) {
+        // CORRECCIÓN: 'getLeaderboard' existe en 'individualRoundService'
+        this.leaderboard$ = this.individualRoundService.getLeaderboard(this.categoryId!);
+        this.loadFinalBrackets();
+      }
     }
   }
 
-  // --- Métodos de Enfrentamiento ---
+  // --- Métodos de Enfrentamiento (Fase 1) ---
   public loadMatches(): void { 
     if (!this.categoryId || this.categoryType !== 'ENFRENTAMIENTO') return;
-    this.isBusy = true;
-    this.errorMessage = null;
-    this.dataLoaded = true; 
+    this.isBusy = true; this.errorMessage = null; this.dataLoaded = true; 
     this.confrontationService.getMatchesByCategory(this.categoryId)
       .pipe(finalize(() => this.isBusy = false))
       .subscribe({
@@ -88,93 +111,86 @@ export class RoundListComponent implements OnInit {
         error: (err) => { this.errorMessage = 'Error al cargar los enfrentamientos.'; }
       });
   }
-  generateBrackets(): void { /* ... (código sin cambios) ... */ }
-  advanceRound(): void { /* ... (código sin cambios) ... */ }
+  generateBrackets(): void {
+    if (!this.categoryId || this.isBusy) return;
+    if (confirm('¿Estás seguro de que deseas generar las llaves? Esta acción no se puede deshacer.')) {
+      this.isBusy = true; this.errorMessage = null;
+      this.confrontationService.generateBrackets(this.categoryId)
+        .pipe(finalize(() => this.isBusy = false))
+        .subscribe({
+          next: () => { alert('Llaves generadas exitosamente.'); this.loadMatches(); },
+          error: (err) => { this.errorMessage = 'Error al generar llaves. ' + (err.error?.message || 'Revisa la consola.'); }
+        });
+    }
+  }
   navigateToMatchScoring(matchId: string): void {
     this.router.navigate(['/scoring/judge/match', matchId]);
   }
-  
-  // --- Métodos de Ronda Individual ---
+
+  // --- Métodos de Ronda Individual (Fase 1 y Simple) ---
   onSubmitNewRound(): void {
     if (this.createRoundForm.invalid || !this.categoryId) {
-      this.errorMessage = "Formulario inválido. Revisa todos los campos.";
-      this.createRoundForm.markAllAsTouched(); 
-      return;
+      this.errorMessage = "Formulario inválido. Revisa todos los campos."; this.createRoundForm.markAllAsTouched(); return;
     }
-    
-    this.isBusy = true;
-    this.errorMessage = null;
-    
+    this.isBusy = true; this.errorMessage = null;
     const formData = this.createRoundForm.value;
     const payload: CreateRondaIndividualDTO = {
-      categoriaTipo: this.categoryId!,
-      // CORRECCIÓN: 'idEquipo' es el nombre correcto para ENVIAR
-      idEquipo: formData.idEquipo, 
-      tiempoMs: Number(formData.tiempoMs),
-      penalizaciones: Number(formData.penalizaciones),
+      categoriaTipo: this.categoryId!, idEquipo: formData.idEquipo, 
+      tiempoMs: Number(formData.tiempoMs), penalizaciones: Number(formData.penalizaciones),
       etiquetaRonda: formData.etiquetaRonda
     };
-
     this.individualRoundService.createRound(payload)
       .pipe(finalize(() => this.isBusy = false))
       .subscribe({
         next: (newRound) => {
-          // CORRECCIÓN: Usamos 'newRound.equipo.nombre' (del DTO de RESPUESTA)
           alert(`Ronda registrada exitosamente para ${newRound.equipo.nombre}.`);
-          
-          this.createRoundForm.reset({
-            idEquipo: '',
-            tiempoMs: 0,
-            penalizaciones: 0,
-            etiquetaRonda: 'Clasificatoria-1'
-          });
+          this.createRoundForm.reset({ idEquipo: '', tiempoMs: 0, penalizaciones: 0, etiquetaRonda: 'Intento' });
         },
-        error: (err) => {
-          this.errorMessage = 'Error al crear la ronda. ' + (err.error?.message || '');
-        }
+        error: (err) => { this.errorMessage = 'Error al crear la ronda. ' + (err.error?.message || ''); }
       });
   }
 
-  // --- Implementación de los métodos de Enfrentamiento (colapsados) ---
-  // (generateBrackets y advanceRound)
-  generateBrackets(): void {
+  // --- Métodos de Velocista (Fase 2, 3, 5) ---
+  
+  /** (Fase 2) Llama al servicio para crear semifinales */
+  generateFinals(): void {
     if (!this.categoryId || this.isBusy) return;
-    
-    if (confirm('¿Estás seguro de que deseas generar las llaves? Esta acción no se puede deshacer.')) {
-      this.isBusy = true; 
-      this.errorMessage = null;
-      
-      this.confrontationService.generateBrackets(this.categoryId)
+    if (confirm('¿Seguro que deseas cerrar la clasificación y generar las finales (Top 4)?')) {
+      this.isBusy = true;
+      this.confrontationService.generateVelocistaFinals(this.categoryId)
         .pipe(finalize(() => this.isBusy = false))
         .subscribe({
           next: () => {
-            alert('Llaves generadas exitosamente.');
-            this.loadMatches(); 
+            alert('¡Finales generadas! Refrescando llaves...');
+            this.refreshBrackets$.next(); 
           },
-          error: (err) => {
-            this.errorMessage = 'Error al generar llaves. ' + (err.error?.message || 'Revisa la consola.');
-          }
+          error: (err) => { this.errorMessage = 'Error al generar finales.'; }
         });
     }
   }
-
+  
+  /** (Fase 3/5) Carga los matches (Semis, Final) */
+  loadFinalBrackets(): void {
+    if (!this.categoryId) return;
+    this.finalBrackets$ = this.refreshBrackets$.pipe(
+      // CORRECCIÓN: 'switchMap' debe ser importado de 'rxjs'
+      switchMap(() => this.confrontationService.getMatchesByCategory(this.categoryId!))
+    );
+  }
+  
+  /** (Fase 4) Llama al servicio para avanzar de ronda (Semi -> Final) */
   advanceRound(): void {
     if (!this.categoryId || this.isBusy) return;
-    
-    if (confirm('¿Estás seguro de avanzar a la siguiente ronda? Todos los matches de la ronda actual deben estar finalizados.')) {
+    if (confirm('¿Seguro que deseas avanzar a la siguiente ronda (Final)?')) {
       this.isBusy = true;
-      this.errorMessage = null;
-      
       this.confrontationService.advanceRound(this.categoryId)
         .pipe(finalize(() => this.isBusy = false))
         .subscribe({
           next: () => {
-            alert('Se ha avanzado a la siguiente ronda.');
-            this.loadMatches();
+            alert('¡Ronda avanzada! Refrescando llaves...');
+            this.refreshBrackets$.next(); 
           },
-          error: (err) => {
-            this.errorMessage = 'Error al avanzar de ronda. ' + (err.error?.message || '');
-          }
+          error: (err) => { this.errorMessage = 'Error al avanzar ronda.'; }
         });
     }
   }

@@ -39,4 +39,16 @@ public class BracketController {
         bracketService.avanzarRonda(payload.getCategoriaTipo());
         return ResponseEntity.ok().build();
     }
+/**
+     * --- ¡NUEVO ENDPOINT! ---
+     * Endpoint de Admin para generar la FINAL de 4 de una categoría velocista.
+     * Lee el Top 4 del leaderboard y crea 2 enfrentamientos de semifinal.
+     */
+    @PostMapping("/generar-final-velocista")
+    public ResponseEntity<Void> generarFinalVelocista(
+            @RequestBody BracketPayload payload
+    ) {
+        bracketService.generarLlavesFinalesVelocista(payload.getCategoriaTipo());
+        return ResponseEntity.ok().build();
+    }
 }

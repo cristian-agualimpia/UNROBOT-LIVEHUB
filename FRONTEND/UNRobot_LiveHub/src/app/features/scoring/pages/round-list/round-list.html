@@ -12,110 +12,163 @@
 
 
   <div *ngIf="categoryType === 'ENFRENTAMIENTO'">
-    
     <div class="mb-6 p-4 bg-gray-100 rounded-lg shadow-sm flex space-x-4">
-      <button (click)="generateBrackets()" [disabled]="isBusy" 
-              class="bg-unrobot-gold text-brand-dark font-bold py-2 px-4 rounded-lg font-heading hover:bg-opacity-90 transition-all disabled:bg-gray-400">
-        {{ isBusy ? 'Procesando...' : 'Generar Llaves' }}
-      </button>
-      <button (click)="advanceRound()" [disabled]="isBusy" 
-              class="bg-brand-dark text-white font-bold py-2 px-4 rounded-lg font-heading hover:bg-opacity-90 transition-all disabled:bg-gray-400">
-        {{ isBusy ? 'Procesando...' : 'Avanzar Ronda' }}
-      </button>
+      <button (click)="generateBrackets()" [disabled]="isBusy" class="...">...</button>
+      <button (click)="advanceRound()" [disabled]="isBusy" class="...">...</button>
     </div>
-
     <div class="mb-6">
-      <button (click)="loadMatches()" [disabled]="isBusy" 
-              class="w-full py-3 px-5 bg-unrobot-blue text-white font-bold rounded-lg font-heading text-lg hover:bg-opacity-90 transition-all disabled:bg-gray-400">
-        {{ isBusy ? 'Cargando...' : 'Cargar/Actualizar Matches' }}
+      <button (click)="loadMatches()" [disabled]="isBusy" class="w-full ...">
+        Cargar/Actualizar Matches
       </button>
     </div>
-    
     <div *ngIf="matches.length > 0; else emptyStateMatches" class="space-y-4">
-      <app-confrontation-list-item
-        *ngFor="let match of matches" 
-        [matchData]="match"
-        (onScore)="navigateToMatchScoring($event)">
-      </app-confrontation-list-item>
+      <app-confrontation-list-item *ngFor="let match of matches" [matchData]="match" (onScore)="navigateToMatchScoring($event)"></app-confrontation-list-item>
     </div>
-    
     <ng-template #emptyStateMatches>
-      <div *ngIf="dataLoaded && !isBusy" class="text-center p-12 bg-gray-50 rounded-lg">
-        <p class="font-sans text-lg text-gray-500">No hay matches para mostrar.</p>
-        <p class="text-gray-400">(Quizás necesites "Generar Llaves".)</p>
+      <div *ngIf="dataLoaded && !isBusy" class="text-center p-12 ...">
+        <p>No hay matches para mostrar.</p>
       </div>
     </ng-template>
-
   </div>
   
 
   <div *ngIf="categoryType === 'RONDA_INDIVIDUAL'">
-    
-    <form [formGroup]="createRoundForm" (ngSubmit)="onSubmitNewRound()" 
-          class="bg-white p-8 rounded-lg shadow-lg border border-gray-200 space-y-6">
-      
-      <h2 class="font-heading text-2xl font-semibold text-gray-800">
-        Registrar Nuevo Intento (Ronda)
-      </h2>
-      <p class="font-sans text-gray-600">
-        Selecciona el equipo e ingresa los datos de su participación.
-      </p>
 
-      <div>
-        <label for="idEquipo" class="block text-sm font-medium text-gray-700">Equipo</label>
-        <select id="idEquipo" formControlName="idEquipo"
-                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg ...">
-          <option value="" disabled>-- Selecciona un equipo --</option>
-          <ng-container *ngIf="teams$ | async as teams">
-            <option *ngFor="let team of teams" [value]="team.id">
-              {{ team.nombre }} ({{ team.institucion }})
-            </option>
-          </ng-container>
-        </select>
-        <div *ngIf="createRoundForm.get('idEquipo')?.invalid && createRoundForm.get('idEquipo')?.touched" 
-             class="text-red-600 text-sm mt-1">
-          Debes seleccionar un equipo.
-        </div>
-      </div>
+    <div *ngIf="isVelocistaCategory; else simpleIndividualForm">
       
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="tiempoMs" class="block text-sm font-medium text-gray-700">Tiempo (en Milisegundos)</label>
-          <input id="tiempoMs" type="number" formControlName="tiempoMs"
-                 class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg ...">
-          <div *ngIf="createRoundForm.get('tiempoMs')?.invalid && createRoundForm.get('tiempoMs')?.touched" 
-               class="text-red-600 text-sm mt-1">
-            Tiempo inválido.
+      <section class="mb-8">
+        <h2 class="font-heading text-3xl font-semibold mb-4 text-gray-800 border-b-2 border-unrobot-gold pb-2">
+          Fase 1: Clasificación
+        </h2>
+        
+        <form [formGroup]="createRoundForm" (ngSubmit)="onSubmitNewRound()" 
+              class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 space-y-4 mb-6">
+          <h3 class="font-heading text-xl font-semibold text-gray-800">Registrar Nuevo Intento</h3>
+          <div>
+            <label for="idEquipo" class="block text-sm ...">Equipo</label>
+            <select id="idEquipo" formControlName="idEquipo" class="mt-1 block w-full ...">
+              <option value="" disabled>-- Selecciona un equipo --</option>
+              <ng-container *ngIf="teams$ | async as teams">
+                <option *ngFor="let team of teams" [value]="team.id">{{ team.nombre }}</option>
+              </ng-container>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="tiempoMs" class="...">Tiempo (ms)</label>
+              <input id="tiempoMs" type="number" formControlName="tiempoMs" class="mt-1 ...">
+            </div>
+            <div>
+              <label for="penalizaciones" class="...">Penalizaciones (Nº)</label>
+              <input id="penalizaciones" type="number" formControlName="penalizaciones" class="mt-1 ...">
+            </div>
+          </div>
+          <div>
+            <label for="etiquetaRonda" class="...">Etiqueta (ej: Intento 1)</label>
+            <input id="etiquetaRonda" type="text" formControlName="etiquetaRonda" class="mt-1 ...">
+          </div>
+          <button type="submit" [disabled]="createRoundForm.invalid || isBusy" class="w-full py-3 ...">
+            {{ isBusy ? 'Guardando...' : 'Registrar Intento' }}
+          </button>
+        </form>
+
+        <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 class="font-heading text-xl font-semibold text-gray-800 mb-4">Leaderboard (Mejores Tiempos)</h3>
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left ...">Pos</th>
+                <th class="px-4 py-2 text-left ...">Equipo</th>
+                <th class="px-4 py-2 text-left ...">Tiempo Final (ms)</th>
+                <th class="px-4 py-2 text-left ...">Nota</th>
+              </tr>
+            </thead>
+            <tbody *ngIf="leaderboard$ | async as leaderboard" class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let entry of leaderboard">
+                <td class="px-4 py-3 font-bold">{{ entry.posicion }}</td>
+                <td class="px-4 py-3">{{ entry.nombreEquipo }}</td>
+                <td class="px-4 py-3 font-mono">{{ entry.mejorTiempoFinalMs }}</td>
+                <td class="px-4 py-3 text-xs font-mono">{{ entry.etiquetaMejorRonda }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      
+      <section class="mb-8 p-4 bg-gray-100 rounded-lg shadow-sm">
+        <h2 class="font-heading text-xl font-semibold mb-2">Fase 2: Acción de Administrador</h2>
+        <button (click)="generateFinals()" [disabled]="isBusy" 
+                class="bg-unrobot-gold text-brand-dark font-bold py-2 px-4 rounded-lg ...">
+          {{ isBusy ? 'Procesando...' : 'Generar Finales (Top 4)' }}
+        </button>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="font-heading text-3xl font-semibold mb-4 text-gray-800 border-b-2 border-unrobot-gold pb-2">
+          Fase 3/5: Finales (Semis y Final)
+        </h2>
+        
+        <div *ngIf="finalBrackets$ | async as brackets" class="space-y-4">
+          <app-velocista-match-item *ngFor="let match of brackets" [matchData]="match">
+          </app-velocista-match-item>
+          
+          <div *ngIf="brackets.length === 0" class="text-center p-8 bg-gray-50 rounded-lg">
+            <p class="text-gray-500">Aún no se han generado las llaves finales.</p>
           </div>
         </div>
+      </section>
+      
+      <section class="mb-8 p-4 bg-gray-100 rounded-lg shadow-sm">
+        <h2 class="font-heading text-xl font-semibold mb-2">Fase 4: Acción de Administrador</h2>
+        <button (click)="advanceRound()" [disabled]="isBusy"
+                class="bg-brand-dark text-white font-bold py-2 px-4 rounded-lg ...">
+          {{ isBusy ? 'Procesando...' : 'Avanzar a la Gran Final' }}
+        </button>
+      </section>
+    </div>
+
+    <ng-template #simpleIndividualForm>
+      <form [formGroup]="createRoundForm" (ngSubmit)="onSubmitNewRound()" 
+            class="bg-white p-8 rounded-lg shadow-lg border border-gray-200 space-y-6">
+        
+        <h2 class="font-heading text-2xl font-semibold text-gray-800">
+          Registrar Puntuación (Ronda Simple)
+        </h2>
+        <p class="font-sans text-gray-600">
+          Selecciona el equipo e ingresa su puntuación.
+        </p>
 
         <div>
-          <label for="penalizaciones" class="block text-sm font-medium text-gray-700">Penalizaciones (Nº)</label>
-          <input id="penalizaciones" type="number" formControlName="penalizaciones"
-                 class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg ...">
-          <div *ngIf="createRoundForm.get('penalizaciones')?.invalid && createRoundForm.get('penalizaciones')?.touched" 
-               class="text-red-600 text-sm mt-1">
-            Valor inválido.
+          <label for="idEquipo" class="...">Equipo</label>
+          <select id="idEquipo" formControlName="idEquipo" class="mt-1 block w-full ...">
+            <option value="" disabled>-- Selecciona un equipo --</option>
+            <ng-container *ngIf="teams$ | async as teams">
+              <option *ngFor="let team of teams" [value]="team.id">{{ team.nombre }}</option>
+            </ng-container>
+          </select>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="tiempoMs" class="...">Puntos Obtenidos (Usar 'Tiempo')</label>
+            <input id="tiempoMs" type="number" formControlName="tiempoMs" class="mt-1 ...">
+          </div>
+          <div>
+            <label for="penalizaciones" class="...">Penalizaciones (Nº)</label>
+            <input id="penalizaciones" type="number" formControlName="penalizaciones" class="mt-1 ...">
           </div>
         </div>
-      </div>
-      
-      <div>
-        <label for="etiquetaRonda" class="block text-sm font-medium text-gray-700">Etiqueta de Ronda</label>
-        <input id="etiquetaRonda" type="text" formControlName="etiquetaRonda"
-               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg ...">
-      </div>
-      <button 
-        type="submit"
-        [disabled]="createRoundForm.invalid || isBusy"
-        class="w-full py-4 px-6 rounded-lg font-heading font-semibold text-lg transition-colors
-               bg-unrobot-blue text-white
-               hover:bg-opacity-90
-               focus:outline-none focus:ring-2 focus:ring-unrobot-gold
-               disabled:bg-gray-400 disabled:cursor-not-allowed">
-        {{ isBusy ? 'Guardando...' : 'Registrar Intento' }}
-      </button>
-    </form>
-    
+        
+        <div>
+          <label for="etiquetaRonda" class="...">Etiqueta (ej: Pitch, Intento 1)</label>
+          <input id="etiquetaRonda" type="text" formControlName="etiquetaRonda" class="mt-1 ...">
+        </div>
+
+        <button typeV="submit" [disabled]="createRoundForm.invalid || isBusy" class="w-full ...">
+          {{ isBusy ? 'Guardando...' : 'Registrar Puntuación' }}
+        </button>
+      </form>
+    </ng-template>
+
   </div>
 </div>

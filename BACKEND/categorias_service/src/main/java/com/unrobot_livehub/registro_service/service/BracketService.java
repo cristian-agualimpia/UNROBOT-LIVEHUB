@@ -13,6 +13,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.unrobot_livehub.registro_service.dtos.RondaIndividualDTO; // <-- ¡AÑADE ESTA LÍNEA!
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 @Service
 public class BracketService {
 
@@ -21,6 +30,9 @@ public class BracketService {
     
     @Autowired
     private EquipoService equipoService;
+
+    @Autowired // <-- ¡AÑADE ESTA LÍNEA!
+    private RondaIndividualService rondaIndividualService; // <-- ¡Y ESTA LÍNEA!
 
     // Define el orden de las rondas, de la primera a la última
     private static final List<String> ORDEN_RONDAS = List.of(
@@ -212,5 +224,50 @@ public class BracketService {
         if (rondaActual.toUpperCase().startsWith("CUARTOS")) return "Semifinal";
         if (rondaActual.toUpperCase().startsWith("SEMIFINAL")) return "Final";
         return "RondaDesconocida";
+    }
+
+    /**
+     * --- ¡NUEVO MÉTODO! ---
+     * Genera la llave final (Top 4) para categorías velocistas.
+     */
+    public void generarLlavesFinalesVelocista(String categoriaTipo) {
+        CategoriaTipo categoria = CategoriaTipo.valueOf(categoriaTipo.toUpperCase());
+        
+        // 1. Obtener el leaderboard (Top 4) del servicio de rondas
+        // (Gracias a la corrección, esto ya devuelve el Top 4 ordenado)
+        List<RondaIndividualDTO> leaderboard = rondaIndividualService.getPosiciones(categoriaTipo);
+
+        if (leaderboard.size() < 4) {
+            throw new IllegalStateException("No hay suficientes (4) equipos clasificados para generar la final.");
+        }
+
+        // 2. Extraer los IDs de los Top 4
+        List<UUID> top4_ids = leaderboard.subList(0, 4).stream()
+                                    .map(RondaIndividualDTO::getIdEquipo)
+                                    .collect(Collectors.toList());
+        
+        // 3. Sorteo (Mezclar la lista)
+        Collections.shuffle(top4_ids);
+
+        // 4. Crear los 2 enfrentamientos de Semifinal
+        List<Enfrentamiento> finales = List.of(
+            crearEnfrentamientoVelocista(categoria, "Semifinal-1", top4_ids.get(0), top4_ids.get(1)),
+            crearEnfrentamientoVelocista(categoria, "Semifinal-2", top4_ids.get(2), top4_ids.get(3))
+        );
+
+        // 5. Guardar las nuevas semifinales
+        enfrentamientoRepository.saveAll(finales);
+    }
+    
+    // Helper para crear el enfrentamiento
+    private Enfrentamiento crearEnfrentamientoVelocista(CategoriaTipo cat, String etiqueta, UUID idA, UUID idB) {
+        Enfrentamiento match = new Enfrentamiento();
+        match.setCategoria(cat);
+        match.setEtiquetaRonda(etiqueta);
+        match.setIdEquipoA(idA);
+        match.setIdEquipoB(idB);
+        match.setPuntosA(0); // Se usará para guardar el tiempo_A
+        match.setPuntosB(0); // Se usará para guardar el tiempo_B
+        return match;
     }
 }

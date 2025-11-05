@@ -1,0 +1,42 @@
+<div class="bg-white rounded-lg shadow-md p-4 border-l-4"
+     [class.border-green-500]="isFinalizado"
+     [class.border-blue-500]="!isFinalizado">
+  
+  <h3 class="font-heading text-lg font-bold text-gray-800">
+    {{ matchData.etiquetaRonda }}
+  </h3>
+  <p class="text-sm text-gray-600 mb-2">
+    (ID: {{ matchData.id }})
+  </p>
+
+  <div class="mb-4 text-center">
+    <span class="font-bold text-lg text-brand-dark">{{ matchData.idEquipoA || 'N/A' }}</span>
+    <span class="text-gray-500 mx-2">vs</span>
+    <span class="font-bold text-lg text-brand-dark">{{ matchData.idEquipoB || 'N/A' }}</span>
+  </div>
+
+  <form [formGroup]="timesForm" (ngSubmit)="submitTimes()">
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label [for]="'timeA-' + matchData.id" class="block text-sm font-medium text-gray-700">Tiempo A (ms)</label>
+        <input [id]="'timeA-' + matchData.id" type="number" formControlName="tiempoA"
+               [readOnly]="isFinalizado"
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg ...">
+      </div>
+      <div>
+        <label [for]="'timeB-' + matchData.id" class="block text-sm font-medium text-gray-700">Tiempo B (ms)</label>
+        <input [id]="'timeB-' + matchData.id" type="number" formControlName="tiempoB"
+               [readOnly]="isFinalizado"
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg ...">
+      </div>
+    </div>
+
+    <div *ngIf="errorMessage" class="text-red-600 text-sm mt-2">{{ errorMessage }}</div>
+    <div *ngIf="successMessage" class="text-green-600 text-sm mt-2">{{ successMessage }}</div>
+
+    <button type="submit" [disabled]="timesForm.invalid || isBusy || isFinalizado"
+            class="w-full mt-4 py-2 bg-unrobot-blue text-white font-semibold rounded-lg ... disabled:bg-gray-400">
+      {{ isBusy ? 'Guardando...' : (isFinalizado ? 'Tiempos Registrados' : 'Registrar Tiempos') }}
+    </button>
+  </form>
+</div>

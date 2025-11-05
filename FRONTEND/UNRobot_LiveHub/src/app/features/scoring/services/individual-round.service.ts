@@ -1,20 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+// CORRECCIÓN DE RUTA: ../../
 import { RondaIndividualDTO } from '../../../core/models/ronda-individual.model';
 
 /**
- * DTO para enviar los resultados de una ronda individual.
- * Asumimos que la API espera estos campos.
+ * DTO para CREAR una nueva ronda individual.
  */
-export interface UpdateRondaIndividualDTO {
-  puntos: number;
-  tiempoMs: number;
-  fallos: number;
-  estadoRonda: 'FINALIZADA'; // Marcamos la ronda como finalizada
-}
-
-
 export interface CreateRondaIndividualDTO {
   categoriaTipo: string;
   idEquipo: string;
@@ -23,12 +15,44 @@ export interface CreateRondaIndividualDTO {
   etiquetaRonda: string;
 }
 
+/**
+ * DTO para ACTUALIZAR una ronda (lo que usa judge-form-individual).
+ * Asumimos que no podemos cambiar el equipo, solo los resultados.
+ */
+export interface UpdateRondaIndividualDTO {
+  tiempoMs: number;
+  penalizaciones: number;
+  etiquetaRonda: string;
+}
+
+// --- ¡NUEVO DTO! ---
+// DTO para la respuesta de /posiciones
+// CORRECCIÓN: Añadido 'export'
+export interface LeaderboardEntryDTO {
+  posicion: number;
+  nombreEquipo: string;
+  idEquipo: string;
+  mejorTiempoMs: number;
+  mejorPenalizaciones: number;
+  mejorTiempoFinalMs: number;
+  etiquetaMejorRonda: string;
+}
+
+
 @Injectable({
   providedIn: 'root'
 })
 export class IndividualRoundService {
 
   private http = inject(HttpClient);
+
+  // --- ¡NUEVO MÉTODO PARA VELOCISTA! ---
+  /**
+   * GET /api/v1/rondas-individuales/posiciones/{categoriaTipo}
+   */
+  getLeaderboard(categoryId: string): Observable<LeaderboardEntryDTO[]> {
+    return this.http.get<LeaderboardEntryDTO[]>(`/rondas-individuales/posiciones/${categoryId}`);
+  }
 
   /**
    * POST /api/v1/rondas-individuales
@@ -40,7 +64,6 @@ export class IndividualRoundService {
 
   /**
    * GET /api/v1/rondas-individuales/categoria/{categoriaTipo}
-   * (Lo mantenemos por si lo usamos en el futuro para ver un historial)
    */
   getRoundsByCategory(categoryId: string): Observable<RondaIndividualDTO[]> {
     return this.http.get<RondaIndividualDTO[]>(`/rondas-individuales/categoria/${categoryId}`);
@@ -55,9 +78,8 @@ export class IndividualRoundService {
 
   /**
    * PUT /api/v1/rondas-individuales/{id}
-   * (Este DTO es de judge-form-individual, lo dejamos como está)
    */
-  updateRound(roundId: string, payload: any): Observable<RondaIndividualDTO> {
+  updateRound(roundId: string, payload: UpdateRondaIndividualDTO): Observable<RondaIndividualDTO> {
     return this.http.put<RondaIndividualDTO>(`/rondas-individuales/${roundId}`, payload);
   }
 }

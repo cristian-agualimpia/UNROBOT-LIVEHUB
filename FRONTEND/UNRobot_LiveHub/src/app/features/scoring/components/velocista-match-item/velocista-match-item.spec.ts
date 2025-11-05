@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { IndividualRoundListItem } from '../individual-round-list-item';
+import { VelocistaMatchItem } from './velocista-match-item';
 
-describe('IndividualRoundListItem', () => {
-  let component: IndividualRoundListItem;
-  let fixture: ComponentFixture<IndividualRoundListItem>;
+describe('VelocistaMatchItem', () => {
+  let component: VelocistaMatchItem;
+  let fixture: ComponentFixture<VelocistaMatchItem>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [IndividualRoundListItem]
+      imports: [VelocistaMatchItem]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(IndividualRoundListItem);
+    fixture = TestBed.createComponent(VelocistaMatchItem);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

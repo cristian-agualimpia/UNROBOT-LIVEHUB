@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.unrobot_livehub.registro_service.dtos.VelocistaTiemposPayload;
+
 import java.util.List;
 import java.util.UUID; // <-- ¡Asegúrate de importar UUID!
 
@@ -63,5 +65,19 @@ public class EnfrentamientoController {
     ) {
         List<EnfrentamientoDTO> enfrentamientos = enfrentamientoService.getEnfrentamientosByCategoria(categoriaTipo);
         return ResponseEntity.ok(enfrentamientos);
+    }
+
+    /**
+     * --- ¡NUEVO ENDPOINT! ---
+     * Endpoint de Juez para registrar los TIEMPOS de una final velocista (1v1).
+     * El backend determina el ganador basado en el tiempo más bajo.
+     */
+    @PutMapping("/{id}/registrar-tiempos")
+    public ResponseEntity<EnfrentamientoDTO> registrarTiemposVelocista(
+            @PathVariable UUID id,
+            @RequestBody VelocistaTiemposPayload payload
+    ) {
+        EnfrentamientoDTO updatedMatch = enfrentamientoService.registrarTiemposVelocista(id, payload);
+        return ResponseEntity.ok(updatedMatch);
     }
 }

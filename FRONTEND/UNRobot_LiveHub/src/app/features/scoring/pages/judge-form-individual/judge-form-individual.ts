@@ -1,9 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, BehaviorSubject, catchError, EMPTY } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BackButtonComponent } from '../../../../shared/components/back-button/back-button';
+// CORRECCIÓN: Importar el DTO de UPDATE
 import { IndividualRoundService, UpdateRondaIndividualDTO } from '../../services/individual-round.service';
 import { RondaIndividualDTO } from '../../../../core/models/ronda-individual.model';
 
@@ -16,7 +17,6 @@ import { RondaIndividualDTO } from '../../../../core/models/ronda-individual.mod
 })
 export class JudgeFormIndividualComponent implements OnInit {
   
-  // Inyecciones de servicios
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder); 
@@ -24,7 +24,7 @@ export class JudgeFormIndividualComponent implements OnInit {
 
   private roundId: string | null = null;
   
-  // --- CORRECCIÓN: Cambiado de 'private' a 'public' ---
+  // CORRECCIÓN: Hacer PÚBLICO para que el HTML lo vea
   public roundSubject = new BehaviorSubject<RondaIndividualDTO | null>(null);
   public round$ = this.roundSubject.asObservable();
 
@@ -34,10 +34,11 @@ export class JudgeFormIndividualComponent implements OnInit {
   public scoreForm: FormGroup;
 
   constructor() {
+    // CORRECCIÓN: Usar los campos del nuevo DTO
     this.scoreForm = this.fb.group({
-      puntos: [0, [Validators.required, Validators.min(0)]],
-      tiempoMs: [0, [Validators.required, Validators.min(0)]],
-      fallos: [0, [Validators.required, Validators.min(0)]]
+      tiempoMs: [0, [Validators.required, Validators.min(0)]], 
+      penalizaciones: [0, [Validators.required, Validators.min(0)]],
+      etiquetaRonda: ['', Validators.required]
     });
   }
 
@@ -56,23 +57,19 @@ export class JudgeFormIndividualComponent implements OnInit {
 
     this.isLoading = true;
     this.individualRoundService.getRoundById(this.roundId).subscribe({
-      // --- CORRECCIÓN: Añadir tipo ---
-      next: (data: RondaIndividualDTO) => {
+      next: (data) => {
         this.roundSubject.next(data);
-        this.scoreForm.patchValue({
-          puntos: data.puntos,
-          tiempoMs: data.tiempoMs,
-          fallos: data.fallos
-        });
         
-        if (data.estadoRonda === 'FINALIZADA') {
-          this.scoreForm.disable();
-        }
+        // CORRECCIÓN: Rellenar el formulario con los datos correctos
+        this.scoreForm.patchValue({
+          tiempoMs: data.tiempoMs,
+          penalizaciones: data.penalizaciones,
+          etiquetaRonda: data.etiquetaRonda
+        });
         
         this.isLoading = false;
       },
-      // --- CORRECCIÓN: Añadir tipo ---
-      error: (err: any) => {
+      error: (err) => {
         this.errorMessage = "Error al cargar la ronda.";
         this.isLoading = false;
       }
@@ -80,34 +77,32 @@ export class JudgeFormIndividualComponent implements OnInit {
   }
 
   saveRound(): void {
-    if (!this.roundId || this.scoreForm.invalid || this.scoreForm.disabled) {
+    if (!this.roundId || this.scoreForm.invalid) {
       this.errorMessage = "El formulario es inválido. Revise los campos.";
       return;
     }
 
-    if (confirm('¿Estás seguro de guardar y finalizar esta ronda? Esta acción no se puede deshacer.')) {
+    if (confirm('¿Estás seguro de ACTUALIZAR esta ronda?')) {
       this.isLoading = true;
       this.errorMessage = null;
 
+      // CORRECCIÓN: Usar el DTO de UPDATE
       const formData = this.scoreForm.value;
       const payload: UpdateRondaIndividualDTO = {
-        puntos: Number(formData.puntos),
         tiempoMs: Number(formData.tiempoMs),
-        fallos: Number(formData.fallos),
-        estadoRonda: 'FINALIZADA'
+        penalizaciones: Number(formData.penalizaciones),
+        etiquetaRonda: formData.etiquetaRonda
       };
       
       this.individualRoundService.updateRound(this.roundId, payload).subscribe({
-        // --- CORRECCIÓN: Añadir tipo ---
-        next: (updatedRound: RondaIndividualDTO) => {
+        next: (updatedRound) => {
           this.roundSubject.next(updatedRound);
-          this.scoreForm.disable();
           this.isLoading = false;
-          alert('Ronda guardada y finalizada exitosamente.');
-          this.router.navigate(['../'], { relativeTo: this.route });
+          alert('Ronda actualizada exitosamente.');
+          // Navegar de vuelta a la lista
+          this.router.navigate(['/scoring/hub', updatedRound.categoriaTipo, updatedRound.categoriaTipo]);
         },
-        // --- CORRECCIÓN: Añadir tipo ---
-        error: (err: any) => {
+        error: (err) => {
           this.errorMessage = 'Error al guardar la ronda. ' + (err.error?.message || '');
           this.isLoading = false;
         }

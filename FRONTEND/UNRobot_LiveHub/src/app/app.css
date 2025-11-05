@@ -1,3 +1,14 @@
+/* src/app.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ... */
+
+/* Hacemos que toda la app tenga el nuevo color de fondo claro */
+html, body {
+  background-color: theme('colors.unrobot-light');
+}
 /* Hacemos que el componente raíz (app-root) ocupe 
   toda la altura de la pantalla y use flexbox 
   en modo columna.

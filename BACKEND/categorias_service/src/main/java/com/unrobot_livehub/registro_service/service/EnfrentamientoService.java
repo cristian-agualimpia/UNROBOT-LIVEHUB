@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.unrobot_livehub.registro_service.dtos.VelocistaTiemposPayload;
+
 import java.util.List;
 import java.util.Optional; // <-- ¡IMPORTAR OPTIONAL!
 import java.util.UUID;
@@ -128,5 +130,32 @@ public class EnfrentamientoService {
                 match.getEtiquetaRonda(),
                 match.getFaltasNotas()
         );
+    }
+
+    /**
+     * --- ¡NUEVO MÉTODO! ---
+     * Registra los tiempos de una final velocista (1v1) y declara un ganador.
+     */
+    public EnfrentamientoDTO registrarTiemposVelocista(UUID matchId, VelocistaTiemposPayload payload) {
+        Enfrentamiento match = enfrentamientoRepository.findById(matchId)
+                .orElseThrow(() -> new EntityNotFoundException("Enfrentamiento no encontrado: " + matchId));
+
+        // 1. Re-utilizamos los campos 'puntos' para guardar los 'tiempos'
+        match.setPuntosA(payload.getTiempoEquipoA_ms().intValue());
+        match.setPuntosB(payload.getTiempoEquipoB_ms().intValue());
+
+        // 2. Determinar el ganador (tiempo más bajo)
+        if (payload.getTiempoEquipoA_ms() < payload.getTiempoEquipoB_ms()) {
+            match.setIdGanador(match.getIdEquipoA());
+        } else if (payload.getTiempoEquipoB_ms() < payload.getTiempoEquipoA_ms()) {
+            match.setIdGanador(match.getIdEquipoB());
+        } else {
+            // Empate - por ahora no declaramos ganador
+            match.setIdGanador(null); 
+            match.setFaltasNotas((match.getFaltasNotas() != null ? match.getFaltasNotas() : "") + " [EMPATE] ");
+        }
+
+        Enfrentamiento matchActualizado = enfrentamientoRepository.save(match);
+        return convertToDTO(matchActualizado);
     }
 }

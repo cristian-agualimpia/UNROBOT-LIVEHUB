@@ -1,4 +1,3 @@
-// Importamos el DTO de equipo para anidarlo
 import { EquipoDTO } from "./equipo.model"; 
 
 /**
@@ -8,11 +7,13 @@ export interface RondaIndividualDTO {
   id: string; // UUID
   categoriaTipo: string;
   
-  // CORRECCIÓN: El backend devuelve un objeto, no un ID
-  equipo: EquipoDTO; 
+  equipo: EquipoDTO; // Objeto anidado
 
   tiempoMs: number;
   penalizaciones: number;
   tiempoFinalMs: number; 
   etiquetaRonda: string;
+  
+  // El backend NO envía 'estadoRonda', 'puntos', o 'fallos'.
+  // Los calcularemos o adaptaremos.
 }

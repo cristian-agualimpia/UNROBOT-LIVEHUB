@@ -10,7 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+
+import java.util.Comparator; // <-- ¡AÑADE ESTA LÍNEA!
+import java.util.Map;       // <-- ¡AÑADE ESTA LÍNEA!
 
 @Service
 public class RondaIndividualService {
@@ -22,35 +26,69 @@ public class RondaIndividualService {
     private static final long PENALIZACION_MS = 5000;
 
     /**
-     * Registra una nueva ronda para un velocista y calcula su tiempo final.
+     * Registra un nuevo intento.
+     * (¡ACTUALIZADO! para calcular el tiempo final aquí)
      */
     public RondaIndividualDTO createRonda(RondaIndividualDTO rondaDTO) {
-        CategoriaTipo categoria = CategoriaTipo.valueOf(rondaDTO.getCategoriaTipo());
+        CategoriaTipo categoria = CategoriaTipo.valueOf(rondaDTO.getCategoriaTipo().toUpperCase());
 
-        // --- Lógica de Negocio Clave ---
-        long tiempoFinalCalculado = rondaDTO.getTiempoMs() + (rondaDTO.getPenalizaciones() * PENALIZACION_MS);
+        // Lógica de cálculo de tiempo/puntos
+        long tiempoFinalCalculado;
+        if (categoria == CategoriaTipo.ROVER_RC_EXPLORADOR || categoria == CategoriaTipo.INNOVATION_CHALLENGE) {
+            // Para categorías de PUNTOS, el "tiempoFinalMs" ES el puntaje
+            tiempoFinalCalculado = rondaDTO.getTiempoFinalMs(); // Asumimos que el front envía el puntaje aquí
+        } else {
+            // Para categorías de TIEMPO, lo calculamos
+            tiempoFinalCalculado = rondaDTO.getTiempoMs() + (rondaDTO.getPenalizaciones() * PENALIZACION_MS);
+        }
 
         RondaIndividual ronda = new RondaIndividual();
         ronda.setCategoria(categoria);
         ronda.setIdEquipo(rondaDTO.getIdEquipo());
         ronda.setTiempoMs(rondaDTO.getTiempoMs());
         ronda.setPenalizaciones(rondaDTO.getPenalizaciones());
-        ronda.setTiempoFinalMs(tiempoFinalCalculado); // Se guarda el tiempo calculado
+        ronda.setTiempoFinalMs(tiempoFinalCalculado); // Se guarda el tiempo/puntaje calculado
         ronda.setEtiquetaRonda(rondaDTO.getEtiquetaRonda());
 
         RondaIndividual rondaGuardada = rondaRepository.save(ronda);
         return convertToDTO(rondaGuardada);
     }
 
-    /**
-     * Obtiene la tabla de posiciones de una categoría velocista.
-     * (Ordenada por el mejor tiempo final).
-     */
     public List<RondaIndividualDTO> getPosiciones(String categoriaTipo) {
-        CategoriaTipo categoria = CategoriaTipo.valueOf(categoriaTipo);
-        List<RondaIndividual> rondas = rondaRepository.findByCategoriaOrderByTiempoFinalMsAsc(categoria);
+        CategoriaTipo categoria = CategoriaTipo.valueOf(categoriaTipo.toUpperCase());
+
+        // 1. Determinar el criterio de ordenamiento
+        boolean esPorPuntos = (categoria == CategoriaTipo.ROVER_RC_EXPLORADOR || categoria == CategoriaTipo.INNOVATION_CHALLENGE);
         
-        return rondas.stream().map(this::convertToDTO).collect(Collectors.toList());
+        Comparator<RondaIndividual> comparador;
+        BinaryOperator<RondaIndividual> mejorIntento;
+
+        if (esPorPuntos) {
+            // MÁS puntos es mejor
+            comparador = Comparator.comparing(RondaIndividual::getTiempoFinalMs).reversed(); // Orden DESC
+            mejorIntento = BinaryOperator.maxBy(Comparator.comparing(RondaIndividual::getTiempoFinalMs));
+        } else {
+            // MENOS tiempo es mejor
+            comparador = Comparator.comparing(RondaIndividual::getTiempoFinalMs); // Orden ASC
+            mejorIntento = BinaryOperator.minBy(Comparator.comparing(RondaIndividual::getTiempoFinalMs));
+        }
+
+        // 2. Obtener todas las rondas
+        List<RondaIndividual> todasLasRondas = rondaRepository.findByCategoria(categoria);
+
+        // 3. Agrupar por equipo y encontrar el MEJOR intento de cada uno
+        Map<UUID, RondaIndividual> mejorIntentoPorEquipo = todasLasRondas.stream()
+                .collect(Collectors.toMap(
+                        RondaIndividual::getIdEquipo,  // Clave: ID del equipo
+                        r -> r,                         // Valor: la ronda
+                        mejorIntento                    // Función de fusión: quédate con el mejor
+                ));
+
+        // 4. Convertir a DTO y ordenar la lista final
+        return mejorIntentoPorEquipo.values().stream()
+                .sorted(comparador)
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     // --- Métodos de Conversión ---

@@ -32,4 +32,17 @@ public interface RondaIndividualRepository extends JpaRepository<RondaIndividual
      * @return Una lista de las rondas de ese equipo.
      */
     List<RondaIndividual> findByCategoriaAndIdEquipo(CategoriaTipo categoria, UUID idEquipo);
+
+// --- ¡AÑADE ESTE MÉTODO! ---
+    /**
+     * Busca todas las rondas/intentos para una categoría específica.
+     * (Lo necesitamos para la nueva lógica de 'getPosiciones' que agrupa por equipo)
+     */
+    List<RondaIndividual> findByCategoria(CategoriaTipo categoria);
+
+    
+    // --- (Estos ya deberías tenerlos, pero asegúrate de que estén) ---
+ 
+    // (Usado para Leaderboards de PUNTOS - DESC)
+    List<RondaIndividual> findByCategoriaOrderByTiempoFinalMsDesc(CategoriaTipo categoria);
 }
