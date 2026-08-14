@@ -1,4 +1,11 @@
-/* You can add global styles to this file, and also import other style files */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* src/styles.css */
+
+/* Esta es la directiva de importación para Tailwind v4 */
+@import 'tailwindcss';
+
+/* Tus estilos globales que usan los colores del config */
+html, body {
+  background-color: theme('colors.unrobot-light');
+  font-family: theme('fontFamily.sans');
+  color: theme('colors.unrobot-darkest');
+}
