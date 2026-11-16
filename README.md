@@ -1,1223 +1,315 @@
-# UNROBOT-LIVEHUB
+```markdown
+# 🤖 UNROBOT-LIVEHUB — Guía de Onboarding para Nuevos Contribuyentes
 
-Plataforma backend para la gestión de información de participantes, atletas/robots y servicios asociados a **UNRobot / CEIMTUN**, construida bajo una arquitectura de microservicios.
-
-El proyecto está diseñado para separar las responsabilidades del sistema en servicios independientes y permitir posteriormente su despliegue mediante Docker y Kubernetes.
-
----
-
-## 1. Estado actual del proyecto
-
-### Implementado / configurado
-
-* Backend basado en **Spring Boot 2.7**.
-* Arquitectura orientada a microservicios.
-* Servicio de registro (`registro_service`).
-* Persistencia mediante **PostgreSQL**.
-* ORM mediante **Spring Data JPA / Hibernate**.
-* Base de datos PostgreSQL dockerizada.
-* Configuración de conexión entre Spring Boot ejecutándose localmente y PostgreSQL ejecutándose en Docker.
-* Puerto HTTP del servicio de registro: `8081`.
-* Docker Compose para levantar PostgreSQL.
-* Estructura preparada para incorporar:
-
-  * Spring Cloud Gateway.
-  * Keycloak.
-  * Apache Kafka.
-  * Frontend Angular/Ionic.
-  * Docker.
-  * Kubernetes.
-
-### Pendiente de desarrollo / consolidación
-
-* Completar los demás microservicios.
-* Definir y documentar todos los endpoints REST.
-* Consolidar autenticación y autorización mediante Keycloak.
-* Incorporar comunicación/eventos mediante Kafka.
-* Configurar Spring Cloud Gateway.
-* Completar frontend.
-* Crear configuración Docker para todos los servicios.
-* Crear infraestructura de despliegue mediante Kubernetes.
-* Documentar variables de entorno y secretos.
-* Crear pruebas automatizadas.
-* Documentar completamente el contrato de las APIs.
+> **Documento vivo.** Si modificas arquitectura, entidades o el roadmap, actualiza este archivo en el mismo PR. La edición 20 de UN Robot (2027) depende de que el conocimiento no se pierda con la rotación anual de CEIMTUN RAS / Rama IEEE UNAL Bogotá.
 
 ---
 
-# 2. Arquitectura general
+## 📌 1. Contexto del Proyecto
 
-La arquitectura propuesta es:
+**UNROBOT-LIVEHUB** es la plataforma oficial de gestión y transmisión en vivo del torneo **UN Robot**, el torneo de robótica gratuito más grande de Colombia, organizado por la **Rama Estudiantil IEEE de la Universidad Nacional de Colombia sede Bogotá**, a través del capítulo **CEIMTUN RAS** (*Comité de Estudiantes de Ingeniería Mecatrónica — Robotics and Automation Society*).
 
-```text
-                         ┌──────────────────────┐
-                         │      Frontend        │
-                         │   Angular / Ionic    │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │  Spring Cloud       │
-                         │      Gateway         │
-                         └──────────┬───────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              │                     │                     │
-              ▼                     ▼                     ▼
-      ┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-      │ Registro      │     │  Otros        │     │  Otros        │
-      │ Service       │     │ Microservicios│     │ Microservicios│
-      │ :8081         │     │               │     │               │
-      └───────┬───────┘     └───────────────┘     └───────────────┘
-              │
-              ▼
-      ┌────────────────┐
-      │   PostgreSQL   │
-      │   :5432        │
-      └────────────────┘
+- **Edición objetivo:** 20.ª edición (2027) — hito de aniversario.
+- **Categorías activas:** Sumo, Bolabot, Velocistas, y otras por confirmar.
+- **Modalidades soportadas:** `ENFRENTAMIENTO` (1v1, Sumo) y `RondaIndividual` (por tiempo/pista, Velocistas).
+- **Usuarios del sistema:** organizadores, árbitros/jueces, operadores de mesa, público general (tableros en vivo).
 
-              ┌──────────────────────┐
-              │       Keycloak       │
-              │ Autenticación/AuthZ  │
-              └──────────────────────┘
-
-              ┌──────────────────────┐
-              │        Kafka         │
-              │ Comunicación eventos │
-              └──────────────────────┘
-```
-
-La idea principal es que cada microservicio sea responsable de su propio dominio y pueda evolucionar o desplegarse independientemente.
+> ⚠️ **Advertencia de escala:** la edición 20 espera un volumen significativamente mayor de equipos, categorías, público y cobertura mediática. Toda decisión técnica debe evaluarse contra ese escenario, no contra una edición promedio.
 
 ---
 
-# 3. Backend
+## 🏗 2. Arquitectura e Infraestructura
 
-## 3.1 Registro Service
-
-El primer servicio desarrollado es:
+### 2.1 Diagrama
 
 ```text
-registro_service
+[ Dispositivos Públicos / Jueces / Pantallas ]
+                      │
+                      ▼ (HTTPS seguro, sin abrir puertos en router)
+            [ Cloudflare Tunnels ]
+                      │
+                      ▼
+       ┌─────────────────────────────┐
+       │      Servidor Proxmox       │
+       │  ┌───────────────────────┐  │
+       │  │   Nginx (Proxy Inv.)  │  │
+       │  └─────┬───────────┬─────┘  │
+       │        │           │        │
+       │        ▼           ▼        │
+       │  [ Frontend ] [ Backend ]   │
+       │  (Angular)   (Spring Boot)  │
+       │                    │        │
+       │                    ▼        │
+       │             [ PostgreSQL ]  │
+       └─────────────────────────────┘
 ```
 
-Configuración actual:
+### 2.2 Ejes de infraestructura
 
-```properties
-spring.application.name=registro_service
-server.port=8081
-```
+| Eje | Descripción |
+|---|---|
+| **Desarrollo local** | Backend Spring Boot + servidor de desarrollo Angular accesibles vía IP local y puerto dentro de la LAN del evento. |
+| **Contenerización** | Docker sobre Proxmox: PostgreSQL, backend y Nginx aislados en contenedores para evitar conflictos de dependencias. |
+| **Exposición pública** | Cloudflare Tunnels publica frontend y API sin tocar NAT del router. Respaldo administrativo con mesh (Tailscale / ZeroTier). |
 
-El servicio está desarrollado utilizando:
-
-* Java 11
-* Spring Boot 2.7.0
-* Spring Data JPA
-* Hibernate
-* PostgreSQL
-* Maven
-
-Durante el desarrollo se ejecuta directamente desde Visual Studio Code, mientras PostgreSQL se ejecuta mediante Docker.
+> 📝 **Nota de nomenclatura:** el proyecto se describe como "microservicios", pero **en la práctica es un monolito modular** (`categorias_service` con controllers/services/repositories). Esto es una decisión deliberada y correcta para el tamaño del equipo; no sobre-ingeniería. Evita dividir en microservicios reales sin una necesidad operativa concreta.
 
 ---
 
-# 4. Base de datos
-
-## PostgreSQL
-
-La base de datos utilizada actualmente es:
-
-```text
-PostgreSQL 13
-```
-
-La configuración Docker actual es:
-
-```yaml
-version: '3.8'
-
-services:
-  postgres-db:
-    image: postgres:13
-    container_name: unrobot-postgres
-    environment:
-      POSTGRES_DB: robotics_platform
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - unrobot_data:/var/lib/postgresql/data
-
-volumes:
-  unrobot_data:
-```
-
-### Parámetros de conexión
-
-| Parámetro                | Valor               |
-| ------------------------ | ------------------- |
-| Host                     | `localhost`         |
-| Puerto                   | `5432`              |
-| Base de datos            | `robotics_platform` |
-| Usuario                  | `admin`             |
-| Contraseña de desarrollo | `password`          |
-
-La aplicación Spring Boot utiliza:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/robotics_platform
-spring.datasource.username=admin
-spring.datasource.password=password
-```
-
----
-
-# 5. Persistencia mediante JPA
-
-Actualmente Hibernate está configurado para actualizar automáticamente el esquema:
-
-```properties
-spring.jpa.hibernate.ddl-auto=update
-```
-
-Esto permite que durante el desarrollo las tablas necesarias sean creadas/modificadas a partir de las entidades JPA.
-
-También se utiliza:
-
-```properties
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-```
-
-## Importante para producción
-
-`ddl-auto=update` es apropiado para desarrollo, pero no debería utilizarse como mecanismo principal de migración en producción.
-
-Para una versión productiva se recomienda utilizar una herramienta de migraciones como:
-
-* Flyway
-* Liquibase
-
-De esta manera las modificaciones del esquema quedan versionadas junto con el código.
-
----
-
-# 6. Persistencia y entidades
-
-Los microservicios utilizan el patrón:
-
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-JPA / Hibernate
-    ↓
-PostgreSQL
-```
-
-Por ejemplo:
-
-```text
-HTTP Request
-     │
-     ▼
-@RestController
-     │
-     ▼
-@Service
-     │
-     ▼
-@Repository
-     │
-     ▼
-PostgreSQL
-```
-
-Los repositorios utilizan Spring Data JPA, evitando tener que implementar manualmente las operaciones CRUD básicas.
-
----
-
-# 7. Endpoints del backend
-
-## Registro Service
-
-El servicio de registro contiene actualmente **4 interfaces Repository**, de acuerdo con la última ejecución registrada de Spring Boot.
-
-La API REST debe documentarse directamente a partir de los `@RestController` existentes.
-
-### Estructura esperada
-
-```text
-/api/...
-```
-
-Los endpoints definitivos deben registrarse en esta sección a partir de las rutas implementadas actualmente.
-
-> **IMPORTANTE:** No se deben inventar endpoints en esta documentación. Esta sección debe completarse revisando las clases `@RestController` del repositorio y anotando:
->
-> * Método HTTP.
-> * Ruta.
-> * Parámetros.
-> * Body.
-> * Respuesta.
-> * Código HTTP.
-> * Requisitos de autenticación.
-> * Ejemplo de request.
-> * Ejemplo de response.
-
-### Tabla de endpoints
-
-| Método   | Endpoint  | Descripción        | Estado        |
-| -------- | --------- | ------------------ | ------------- |
-| `GET`    | Pendiente | Consultar recurso  | 🟡 Documentar |
-| `POST`   | Pendiente | Crear recurso      | 🟡 Documentar |
-| `PUT`    | Pendiente | Actualizar recurso | 🟡 Documentar |
-| `DELETE` | Pendiente | Eliminar recurso   | 🟡 Documentar |
-
-Esta tabla debe sustituirse por el inventario real de endpoints del código antes de considerar terminada la documentación de la API.
-
----
-
-# 8. Configuración de Spring Boot
-
-Archivo:
-
-```text
-src/main/resources/application.properties
-```
-
-Configuración actual:
-
-```properties
-spring.application.name=registro_service
-
-# Server Configuration
-server.port=8081
-
-# Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/robotics_platform
-spring.datasource.username=admin
-spring.datasource.password=password
-
-# JPA Configuration
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
-
-# Logging
-logging.level.com.robotics.registration=DEBUG
-logging.level.org.hibernate.SQL=DEBUG
-```
-
----
-
-# 9. Logging
-
-Durante el desarrollo se mantiene habilitado el logging de SQL:
-
-```properties
-spring.jpa.show-sql=true
-logging.level.org.hibernate.SQL=DEBUG
-```
-
-Esto permite observar las consultas que Hibernate genera contra PostgreSQL.
-
-También existe logging específico para el paquete de la aplicación:
-
-```properties
-logging.level.com.robotics.registration=DEBUG
-```
-
-En producción se debería reducir el nivel de logging y evitar imprimir información sensible.
-
----
-
-# 10. Docker
-
-Actualmente Docker se utiliza principalmente para PostgreSQL.
-
-El objetivo de la dockerización completa es llegar a:
-
-```text
-Frontend
-    ↓
-Gateway
-    ↓
-Microservicios
-    ↓
-Bases de datos
-
-       +
-       
-Keycloak
-Kafka
-```
-
-Cada componente debería poder ejecutarse como un contenedor independiente.
-
-## PostgreSQL
-
-Para levantar PostgreSQL:
-
-```bash
-docker compose up -d
-```
-
-Para comprobar los contenedores:
-
-```bash
-docker ps
-```
-
-Para consultar los logs:
-
-```bash
-docker logs unrobot-postgres
-```
-
-Para detener los servicios:
-
-```bash
-docker compose down
-```
-
-Para reiniciarlos:
-
-```bash
-docker compose up -d
-```
-
----
-
-# 11. Verificación de PostgreSQL
-
-Una señal importante en los logs es:
-
-```text
-database system is ready to accept connections
-```
-
-Esto significa que PostgreSQL terminó su proceso de inicialización y está aceptando conexiones.
-
-También debería aparecer:
-
-```text
-0.0.0.0:5432->5432/tcp
-```
-
-al ejecutar:
-
-```bash
-docker ps
-```
-
-Esto significa que el puerto 5432 del contenedor está publicado en el puerto 5432 de Windows.
-
----
-
-# 12. Conexión mediante pgAdmin
-
-No es necesario tener pgAdmin abierto para que PostgreSQL funcione.
-
-La arquitectura es:
-
-```text
-Spring Boot
-     │
-     │ JDBC
-     ▼
-localhost:5432
-     │
-     ▼
-Docker
-     │
-     ▼
-PostgreSQL
-```
-
-pgAdmin es únicamente una herramienta cliente para administrar/visualizar PostgreSQL.
-
-Para conectarse desde pgAdmin:
-
-```text
-Host:                  localhost
-Port:                  5432
-Maintenance database:  robotics_platform
-Username:              admin
-Password:              password
-```
-
-También puede utilizarse:
-
-```text
-127.0.0.1
-```
-
-como host.
-
----
-
-# 13. Ejecución local completa
-
-## Requisitos
-
-Para ejecutar el proyecto localmente se necesita:
-
-* Windows
-* Git
-* Docker Desktop
-* JDK 11
-* Maven, o Maven Wrapper incluido en el proyecto
-* Visual Studio Code
-* Extensiones de Java/Spring recomendadas
-* Opcional: pgAdmin 4
-
-No es necesario instalar PostgreSQL directamente en Windows si se utiliza el contenedor Docker.
-
----
-
-# 14. Clonar el proyecto
-
-Desde una terminal:
-
-```bash
-git clone <URL_DEL_REPOSITORIO>
-```
-
-Entrar al proyecto:
-
-```bash
-cd UNROBOT-LIVEHUB
-```
-
----
-
-# 15. Levantar PostgreSQL
-
-Desde el directorio donde se encuentra `docker-compose.yml`:
-
-```bash
-docker compose up -d
-```
-
-Verificar:
-
-```bash
-docker ps
-```
-
-Debe aparecer:
-
-```text
-unrobot-postgres
-```
-
-y el puerto:
-
-```text
-5432->5432
-```
-
-También se pueden revisar los logs:
-
-```bash
-docker logs unrobot-postgres
-```
-
-Esperar hasta encontrar:
-
-```text
-database system is ready to accept connections
-```
-
----
-
-# 16. Ejecutar el backend
-
-Entrar al directorio del servicio:
-
-```bash
-cd BACKEND/registro_service
-```
-
-Si el proyecto utiliza Maven Wrapper:
-
-### Windows
-
-```bash
-mvnw.cmd spring-boot:run
-```
-
-Alternativamente, desde Visual Studio Code se puede ejecutar la clase:
-
-```text
-RegistroServiceApplication
-```
-
-La aplicación debería iniciar en:
-
-```text
-http://localhost:8081
-```
-
----
-
-# 17. Orden recomendado de inicio
-
-Para desarrollo local:
-
-```text
-1. Docker Desktop
-       ↓
-2. PostgreSQL
-       ↓
-3. Verificar PostgreSQL
-       ↓
-4. Spring Boot / registro_service
-       ↓
-5. Gateway
-       ↓
-6. Otros microservicios
-       ↓
-7. Frontend
-```
-
-PostgreSQL debe estar disponible antes de iniciar los servicios que dependen de él.
-
----
-
-# 18. Diagnóstico de problemas
-
-## PostgreSQL no inicia
-
-Ejecutar:
-
-```bash
-docker ps
-```
-
-y:
-
-```bash
-docker logs unrobot-postgres
-```
-
-Buscar:
-
-```text
-database system is ready to accept connections
-```
-
----
-
-## Spring Boot no puede conectarse a PostgreSQL
-
-Si aparece:
-
-```text
-FATAL: password authentication failed for user "admin"
-```
-
-el servidor PostgreSQL **sí está siendo alcanzado**, pero las credenciales no coinciden.
-
-Revisar:
-
-```properties
-spring.datasource.username=admin
-spring.datasource.password=password
-```
-
-y compararlas con la configuración con la que se inicializó PostgreSQL.
-
-### Atención con los volúmenes
-
-PostgreSQL solamente utiliza:
-
-```yaml
-POSTGRES_USER
-POSTGRES_PASSWORD
-POSTGRES_DB
-```
-
-durante la **inicialización del cluster**.
-
-Si ya existe el volumen:
-
-```text
-unrobot_data
-```
-
-cambiar esas variables en `docker-compose.yml` no necesariamente cambia las credenciales de una base existente.
-
-Para una instalación de desarrollo que pueda eliminarse completamente:
-
-```bash
-docker compose down -v
-```
-
-y posteriormente:
-
-```bash
-docker compose up -d
-```
-
-**ADVERTENCIA:** `down -v` elimina el volumen y, por tanto, los datos almacenados en PostgreSQL.
-
----
-
-## Error: database "admin" does not exist
-
-Si se ejecuta:
-
-```bash
-docker exec -it unrobot-postgres psql -U admin
-```
-
-PostgreSQL puede intentar conectarse a una base de datos llamada `admin`.
-
-Pero en nuestro Compose la base de datos es:
-
-```text
-robotics_platform
-```
-
-Por lo tanto, utilizar:
-
-```bash
-docker exec -it unrobot-postgres psql -U admin -d robotics_platform
-```
-
----
-
-## Error: role "postgres" does not exist
-
-La configuración actual crea:
-
-```text
-POSTGRES_USER=admin
-```
-
-por lo que no necesariamente existe un usuario llamado:
-
-```text
-postgres
-```
-
-El usuario configurado para la aplicación es:
-
-```text
-admin
-```
-
----
-
-# 19. Comunicación entre contenedores
-
-Existe una diferencia importante dependiendo de dónde se ejecuta Spring Boot.
-
-### Spring Boot ejecutándose directamente en Windows
-
-Actualmente:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/robotics_platform
-```
-
-Esto es correcto porque Docker publica:
-
-```yaml
-ports:
-  - "5432:5432"
-```
-
-La aplicación Windows accede al puerto publicado del host.
-
-### Spring Boot ejecutándose dentro de Docker
-
-En ese caso no se debería utilizar:
-
-```text
-localhost
-```
-
-para referirse al contenedor PostgreSQL.
-
-Se utilizaría el nombre del servicio Docker:
-
-```text
-postgres-db
-```
-
-por ejemplo:
-
-```text
-jdbc:postgresql://postgres-db:5432/robotics_platform
-```
-
-Esto es importante cuando se complete la dockerización del backend.
-
----
-
-# 20. Arquitectura de microservicios futura
-
-La plataforma está planteada para evolucionar hacia varios servicios independientes.
-
-Componentes principales:
-
-### API Gateway
-
-Responsable de:
-
-* Punto de entrada único.
-* Enrutamiento hacia microservicios.
-* Políticas comunes.
-* Integración con autenticación.
-* Manejo de rutas.
-
-Tecnología prevista:
-
-```text
-Spring Cloud Gateway
-```
-
-### Keycloak
-
-Responsable de:
-
-* Autenticación.
-* Gestión de usuarios.
-* Roles.
-* Autorización.
-* Tokens JWT.
-
-El backend debería validar los tokens emitidos por Keycloak.
-
-### Apache Kafka
-
-Responsable de comunicación basada en eventos entre microservicios.
-
-Ejemplo conceptual:
-
-```text
-Registro Service
-      │
-      │ evento
-      ▼
-    Kafka
-      │
-      ├──────────────► Servicio A
-      │
-      └──────────────► Servicio B
-```
-
-Esto permite desacoplar servicios que no necesitan comunicarse directamente mediante HTTP.
-
----
-
-# 21. Frontend
-
-El frontend está planteado utilizando:
-
-```text
-Angular
-```
-
-con migración/evolución hacia:
-
-```text
-Ionic
-```
-
-La comunicación con el backend debería realizarse mediante HTTP/REST.
-
-En una arquitectura completa:
-
-```text
-Ionic / Angular
-       │
-       ▼
-Spring Cloud Gateway
-       │
-       ├── Registro Service
-       ├── Servicio de atletas
-       ├── Otros servicios
-       └── ...
-```
-
-El frontend no debería conectarse directamente a cada microservicio una vez implementado el Gateway.
-
----
-
-# 22. Seguridad
-
-La arquitectura contempla **Keycloak** como servidor de identidad.
-
-Flujo esperado:
-
-```text
-Usuario
-   │
-   ▼
-Frontend
-   │
-   ▼
-Keycloak
-   │
-   │ JWT
-   ▼
-Frontend
-   │
-   │ Authorization: Bearer <token>
-   ▼
-API Gateway
-   │
-   ▼
-Microservicio
-```
-
-Los endpoints públicos y protegidos deben definirse explícitamente.
-
----
-
-# 23. Kubernetes
-
-Una vez completada la dockerización de los componentes, el siguiente nivel de despliegue es Kubernetes.
-
-La arquitectura esperada sería:
-
-```text
-                    Kubernetes Cluster
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
-          Gateway                    Keycloak
-             │
-      ┌──────┼─────────┐
-      │      │         │
- Registro  Servicio A  Servicio B
-      │
-      ▼
- PostgreSQL
-
-             +
-             
-           Kafka
-```
-
-Los manifiestos de Kubernetes deberán incluir como mínimo:
-
-* Deployments.
-* Services.
-* ConfigMaps.
-* Secrets.
-* PersistentVolumes/PersistentVolumeClaims cuando corresponda.
-* Ingress o mecanismo equivalente de exposición.
-* Configuración de variables de entorno.
-
----
-
-# 24. Variables de entorno
-
-La configuración actual contiene credenciales directamente en archivos:
-
-```text
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=password
-```
-
-Esto es aceptable únicamente para desarrollo local.
-
-Para producción deberán utilizarse:
-
-```text
-Environment variables
-```
-
-o:
-
-```text
-Docker Secrets
-Kubernetes Secrets
-```
-
-Nunca se deben subir credenciales reales al repositorio.
-
-Una configuración futura debería ser similar a:
-
-```properties
-spring.datasource.url=${DATABASE_URL}
-spring.datasource.username=${DATABASE_USERNAME}
-spring.datasource.password=${DATABASE_PASSWORD}
-```
-
----
-
-# 25. Estructura recomendada del repositorio
-
-La estructura general esperada es:
-
-```text
-UNROBOT-LIVEHUB/
-│
-├── BACKEND/
-│   │
-│   ├── registro_service/
-│   │   ├── src/
-│   │   ├── pom.xml
-│   │   └── ...
-│   │
-│   ├── ...
-│   │
-│   └── ...
-│
-├── FRONTEND/
-│   └── ...
-│
-├── docker-compose.yml
-│
-├── README.md
-│
-└── ...
-```
-
-Los nombres exactos de los demás servicios deben actualizarse conforme se incorporen al repositorio.
-
----
-
-# 26. Flujo de desarrollo
-
-El flujo recomendado para desarrollar una nueva funcionalidad es:
-
-```text
-1. Definir funcionalidad
-        ↓
-2. Definir entidad/dominio
-        ↓
-3. Crear entidad JPA
-        ↓
-4. Crear Repository
-        ↓
-5. Crear Service
-        ↓
-6. Crear Controller
-        ↓
-7. Definir endpoint REST
-        ↓
-8. Probar API
-        ↓
-9. Verificar PostgreSQL
-        ↓
-10. Integrar frontend
-        ↓
-11. Añadir seguridad
-        ↓
-12. Dockerizar
-```
-
----
-
-# 27. Checklist para un nuevo desarrollador
-
-Después de clonar el repositorio:
-
-```text
-[ ] Instalar Docker Desktop
-[ ] Instalar JDK 11
-[ ] Instalar Git
-[ ] Instalar Visual Studio Code
-[ ] Clonar repositorio
-[ ] Levantar Docker Compose
-[ ] Verificar PostgreSQL
-[ ] Revisar application.properties
-[ ] Ejecutar registro_service
-[ ] Verificar puerto 8081
-[ ] Probar endpoints
-[ ] Verificar tablas en PostgreSQL/pgAdmin
-```
-
----
-
-# 28. Estado de madurez
-
-Actualmente el proyecto se encuentra en una etapa de desarrollo en la que:
-
-```text
-                    ┌─────────────────┐
-                    │    Concepto     │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Arquitectura    │
-                    │ de microservicios│
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Backend inicial │
-                    │ Spring Boot     │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ PostgreSQL      │
-                    │ Docker          │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Integración     │
-                    │ Frontend/Auth   │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Docker completo │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Kubernetes      │
-                    └─────────────────┘
-```
-
-El objetivo final es disponer de una plataforma distribuida, modular y desplegable, en la que los componentes puedan escalarse y mantenerse independientemente.
-
----
-
-# 29. Próximos pasos prioritarios
-
-### Backend
-
-1. Inventariar todos los `@RestController`.
-2. Documentar todos los endpoints.
-3. Completar validaciones.
-4. Implementar manejo global de excepciones.
-5. Añadir DTOs donde sea necesario.
-6. Añadir pruebas unitarias.
-7. Añadir pruebas de integración.
-8. Implementar documentación OpenAPI/Swagger.
-
-### Base de datos
-
-1. Revisar modelo relacional.
-2. Confirmar relaciones entre entidades.
-3. Definir índices.
-4. Incorporar migraciones con Flyway/Liquibase.
-5. Separar configuración de desarrollo y producción.
-6. Sacar credenciales del repositorio.
-
-### Arquitectura
-
-1. Completar microservicios.
-2. Incorporar Spring Cloud Gateway.
-3. Incorporar Keycloak.
-4. Incorporar Kafka.
-5. Definir comunicación síncrona vs. asíncrona.
-6. Definir contratos entre servicios.
-
-### Docker
-
-1. Crear `Dockerfile` para cada microservicio.
-2. Incorporar todos los servicios al Compose.
-3. Configurar redes Docker.
-4. Configurar variables de entorno.
-5. Configurar persistencia.
-6. Separar Compose de desarrollo y producción.
-
-### Kubernetes
-
-1. Crear Deployments.
-2. Crear Services.
-3. Crear ConfigMaps.
-4. Crear Secrets.
-5. Configurar almacenamiento persistente.
-6. Configurar Ingress.
-7. Documentar despliegue.
+## 🛠 3. Stack Tecnológico
+
+### Backend (`categorias_service`)
+- **Lenguaje:** Java 21 (`21.0.8`)
+- **Framework:** Spring Boot `3.2.7`
+- **Persistencia:** Spring Data JPA / Hibernate ORM `6.4.9.Final`
+- **Pool de conexiones:** HikariCP
+- **Base de datos:** PostgreSQL
+- **Utilidades:** Lombok
+- **Puerto por defecto:** `8081`
 
 ### Frontend
-
-1. Completar migración/integración Angular/Ionic.
-2. Configurar comunicación con Gateway.
-3. Implementar autenticación.
-4. Manejar JWT.
-5. Implementar vistas correspondientes a los servicios.
-6. Configurar variables de entorno.
+- **Framework:** Angular (en rediseño visual y adaptación responsive para operación arbitral y tableros públicos).
 
 ---
 
-# 30. Resumen rápido
+## 📂 4. Estructura del Proyecto
 
-Para desarrollo local:
+```text
+BACKEND/categorias_service/
+└── src/main/java/com/unrobot_livehub/categorias_service/
+    ├── CategoriasServiceApplication.java   # Punto de entrada Spring Boot (Puerto 8081)
+    ├── controller/                         # REST: BracketController, EquipoController, etc.
+    ├── service/                            # Lógica: BracketService, EquipoService, etc.
+    ├── repository/                         # JPA: EquipoRepository, EnfrentamientoRepository
+    ├── entity/                             # JPA + Enums: Equipo, Enfrentamiento, CategoriaTipo
+    └── dtos/                               # DTOs: CategoriaInfoDTO, BracketDTO, etc.
+```
 
+---
+
+## ⚠️ 5. Modelo de Datos y Reglas Críticas
+
+> **LEER ANTES DE TOCAR ENTIDADES, JPQL O SERVICIOS.** Violar estas reglas rompe el mapeo de Hibernate y genera regresiones en cadena difíciles de diagnosticar.
+
+### 5.1 `CategoriaTipo` (Enum) + `CategoriaInfoDTO`
+
+Las categorías (`BOLABOT`, `SUMO`, Velocistas, etc.) **NO son una tabla**. Son un **Enum enriquecido** con configuración estática y reglamentaria.
+
+- **Regla:** en `Equipo` y `Enfrentamiento`, `categoria` es de tipo `CategoriaTipo`. **No existe `categoria.id` ni `@ManyToOne` hacia una entidad categoría.**
+- **Metadatos expuestos vía `CategoriaInfoDTO`:**
+  - `tipo`: nombre del Enum (ej. `"BOLABOT"`)
+  - `tipoLogica`: `"ENFRENTAMIENTO"` (1v1) o `"RondaIndividual"` (por tiempo/pista)
+  - `nombreCompleto`, `resumenDescriptivo`, `descripcionPista`, `publicoDirigido`, `integrantesMax`, `reglasResumen`
+
+### 5.2 Entidad `Equipo` (tabla `equipos`)
+
+| Atributo | Tipo | Notas |
+|---|---|---|
+| `id` | `UUID` | PK |
+| `nombre` | `String` | Nombre del equipo/robot |
+| `institucion` | `String` | Universidad, colegio o club |
+| `categoria` | `CategoriaTipo` | Enum |
+| `nombreCapitan`, `emailCapitan`, `telefonoCapitan` | `String` | Contacto del líder |
+| `miembros` | `List<String>` | **Se llama `miembros`, NUNCA `integrantes`** |
+| `activo` | `boolean` (`NOT NULL`) | Habilitado en competencia |
+| `motivoDescalificacion` | `String` | Si `activo = false` |
+| `descripcion` | `String` | Notas técnicas libres |
+
+> 🔴 **Regla JPQL:** cualquier consulta sobre miembros debe hacer `LEFT JOIN e.miembros m`. Renombrar a `integrantes` rompe `EquipoRepository.buscarPorCriterio` y `buscarPorCategoriaYCriterio`.
+
+### 5.3 Entidad `Enfrentamiento` (tabla `enfrentamientos`)
+
+| Atributo | Tipo | Notas |
+|---|---|---|
+| `id` | `UUID` | PK |
+| `categoria` | `CategoriaTipo` (`@Enumerated(EnumType.STRING)`) | Categoría del combate |
+| `idEquipoA` | `UUID` (`nullable = false`) | UUID plano, **no** `@ManyToOne` |
+| `idEquipoB` | `UUID` (`nullable = true`) | `null` = BYE / pase automático |
+| `puntosA` / `puntosB` | `int` (default `0`) | Marcador |
+| `idGanador` | `UUID` (`nullable = true`) | Se setea al cerrar el combate |
+| `etiquetaRonda` | `String` (`nullable = false`) | ej. `"Octavos-1"`, `"Semifinal-2"`, `"Final"` |
+| `faltasNotas` | `String` | Bitácora arbitral (amonestaciones, reinicios, incidencias) |
+
+> 🔴 **Regla:** `idEquipoA` e `idEquipoB` son `UUID` planos. **No** convertirlos en `@ManyToOne`. **No** renombrarlos. La integridad referencial depende 100% del servicio (no hay FKs a nivel BD).
+
+---
+
+## ✅ 6. Funcionalidades Implementadas (Estado Actual)
+
+1. **Catálogo de categorías** — reglas, descripciones de pista y topes de integrantes vía `CategoriaInfoDTO`.
+2. **Administración de equipos y casos borde en vivo:**
+   - Registro, edición, cambio de categoría, notas técnicas.
+   - **Protocolo de baja en 3 niveles:**
+     1. *Hard Delete* — si el equipo no está en ningún enfrentamiento.
+     2. *Sustitución por BYE* — si está sembrado en llave pero su combate no se ha disputado.
+     3. *Soft Delete* — si ya participó; `activo = false` + `motivoDescalificacion`, preservando historial.
+3. **Búsqueda multicriterio** (`EquipoRepository`):
+   - JPQL `buscarPorCriterio` y `buscarPorCategoriaYCriterio`.
+   - `LOWER` + `LIKE` sobre `nombre`, `institucion` y `miembros`.
+   - Filtrado opcional por `CategoriaTipo`.
+4. **Operaciones base de edición e intercambio en llaves** — estructura inicial para modificar participantes en enfrentamientos activos.
+5. **Base de estimación de tiempos** — proyección preliminar de duración de rondas según inscritos.
+
+---
+
+## 🚀 7. Ejecución Local
+
+### 7.1 Requisitos previos
+1. **JDK 21** instalado y `JAVA_HOME` configurado.
+2. **PostgreSQL** corriendo (local o Docker) con credenciales en `application.properties` / `application.yml`.
+3. IDE con soporte Java/Spring Boot (VS Code + Extension Pack for Java, IntelliJ IDEA o Eclipse).
+4. **Angular CLI** (para frontend) — versión alineada con el `package.json` del repo.
+
+### 7.2 Backend
 ```bash
-# 1. Clonar
-git clone <URL>
-
-# 2. Entrar al proyecto
-cd UNROBOT-LIVEHUB
-
-# 3. Levantar PostgreSQL
-docker compose up -d
-
-# 4. Verificar PostgreSQL
-docker ps
-
-# 5. Revisar logs si es necesario
-docker logs unrobot-postgres
-
-# 6. Entrar al backend
-cd BACKEND/registro_service
-
-# 7. Ejecutar Spring Boot
-mvnw.cmd spring-boot:run
+cd BACKEND/categorias_service
+mvn spring-boot:run
+# o ejecutar CategoriasServiceApplication.java desde el IDE
 ```
+Verifica en consola:
+- Tomcat en puerto **`8081`**.
+- HikariCP conectado a PostgreSQL.
 
-PostgreSQL:
-
-```text
-localhost:5432
+### 7.3 Frontend
+```bash
+cd FRONTEND   # ajustar según estructura real
+npm install
+ng serve --host 0.0.0.0 --port 4200
 ```
-
-Base de datos:
-
-```text
-robotics_platform
-```
-
-Usuario:
-
-```text
-admin
-```
-
-Backend:
-
-```text
-http://localhost:8081
-```
+Accesible en `http://<IP-LAN>:4200` para pruebas desde tablets/dispositivos del evento.
 
 ---
 
-## Nota sobre esta documentación
+## 🧯 8. Solución de Problemas Frecuentes (Windows / PowerShell)
 
-Este README documenta el estado y la arquitectura conocidos del proyecto hasta la etapa actual de desarrollo.
+### Error: JPQL antiguo persiste tras editar `@Repository`
+Los `.class` en `target/` están desactualizados.
 
-Los elementos marcados como **pendientes** deben actualizarse a partir del código real del repositorio antes de considerar esta documentación definitiva, especialmente:
+```powershell
+Remove-Item -Recurse -Force ".\BACKEND\categorias_service\target"
+```
 
-* Inventario completo de endpoints.
-* Lista definitiva de microservicios.
-* Entidades y relaciones de la base de datos.
-* Puertos de cada servicio.
-* Configuración definitiva de Gateway.
-* Configuración de Keycloak.
-* Topics de Kafka.
-* Estructura final del frontend.
-* Manifiestos Kubernetes.
+Luego en VS Code: `Ctrl + Shift + P` → **`Java: Clean Language Server Workspace`** → reiniciar la app.
+
+### Otros problemas comunes
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| `LazyInitializationException` en serialización | Acceso a colección lazy fuera de sesión | Revisar `spring.jpa.open-in-view` y usar DTOs |
+| `Unknown column` o mapeo roto | Renombrar atributo (`miembros` → `integrantes`) | Revertir renombrado; ver §5.2 |
+| Puerto 8081 ocupado | Otra instancia corriendo | `netstat -ano | findstr :8081` → matar PID |
+| HikariCP timeout | PostgreSQL caído o credenciales | Verificar `docker ps` y `application.yml` |
+
+---
+
+## 🗺 9. Roadmap (Backlog Priorizado)
+
+> **Nota crítica de priorización:** el roadmap original ordena por complejidad; para la edición 20 debe ordenarse por **riesgo operativo**. A continuación la propuesta vigente.
+
+### 🔴 P0 — Imprescindibles antes del evento
+
+| # | Tarea | Justificación |
+|---|---|---|
+| 1 | **Entidad `Edicion`** + aislamiento por año en `Equipo`/`Enfrentamiento` | Sin esto no hay histórico ni "20 años" |
+| 2 | **`EstadoEnfrentamiento`** (`PENDIENTE`, `EN_JUEGO`, `FINALIZADO`, `ANULADO`) | El estado actual se infiere de `idGanador != null` → frágil |
+| 3 | **Spring Security + RBAC** (`ADMIN`, `ARBITRO`, `MESA`, `PUBLICO`) | Sin auth, cualquiera con la URL altera puntajes |
+| 4 | **Entidad `Pista`** + asignación de enfrentamientos | Múltiples arenas simultáneas en 2027 |
+| 5 | **Backup + snapshot + runbook** de contingencia (incluye modo kiosco LAN) | Punto único de fallo en Proxmox |
+| 6 | **Observabilidad mínima**: Actuator, `/health`, logs estructurados | Detección temprana en vivo |
+| 7 | **Auditoría** (`usuario`, `entidad`, `antes`, `despues`, `timestamp`) | Trazabilidad arbitral |
+
+### 🟠 P1 — Altamente deseables (Q2 2027)
+
+| # | Tarea |
+|---|---|
+| 8 | **Fase de grupos (round-robin) + tabla de posiciones + clasificación automática** (unifica roadmap #1 y #2) |
+| 9 | **Tiempo real público (SSE)** para scoreboards y brackets |
+| 10 | **Resorteo/reordenamiento manual** con bloqueo de combates finalizados |
+| 11 | **Frontend responsive/PWA para tablets de árbitros** |
+| 12 | **Actualización a Spring Boot vigente** + revisión de CVEs |
+
+### 🟢 P2 — Valor añadido para el aniversario (Q3–Q4 2027)
+
+| # | Tarea |
+|---|---|
+| 13 | Salón de la fama / histórico multi-edición y rankings acumulados |
+| 14 | Check-in QR y credenciales digitales |
+| 15 | API de overlay para OBS (marcador en vivo, sponsors) |
+| 16 | Algoritmo de optimización tiempo vs. combates (roadmap original #4) |
+| 17 | Marcador extensible (`JSONB`) para categorías con puntuación compuesta |
+| 18 | Portal de patrocinadores con métricas de exposición |
+
+### 🧹 Limpieza técnica (transversal)
+- Eliminar `hibernate.dialect` explícito (Hibernate 6 lo infiere).
+- `spring.jpa.open-in-view=false`.
+- Sustituir inferencia de estado por `EstadoEnfrentamiento` formal.
+
+---
+
+## 🧭 10. Convenciones de Contribución
+
+### 10.1 Antes de abrir un PR
+- [ ] `mvn clean verify` pasa en local.
+- [ ] No se renombraron atributos de §5 (`miembros`, `idEquipoA`, `idEquipoB`, `etiquetaRonda`).
+- [ ] No se añadieron `@ManyToOne` hacia categoría ni hacia equipo en `Enfrentamiento`.
+- [ ] Se actualizó este `README` si cambió arquitectura, entidad o roadmap.
+- [ ] Se documentó la decisión en un ADR si es arquitectónicamente relevante (ver §10.2).
+
+### 10.2 ADRs (Architecture Decision Records)
+Cada decisión no obvia debe quedar registrada en `docs/adr/NNN-titulo.md`. Ejemplos de ADRs que **deberían existir ya**:
+- `001-categoria-como-enum.md` — por qué `CategoriaTipo` no es tabla.
+- `002-uuid-planos-enfrentamiento.md` — por qué `idEquipoA/B` no son `@ManyToOne`.
+- `003-baja-en-3-niveles.md` — protocolo de eliminación de equipos.
+- `004-monolito-modular.md` — por qué no microservicios reales.
+
+Sin ADRs, el próximo equipo "corregirá" decisiones deliberadas y romperá el sistema.
+
+### 10.3 Estilo de commits
+Convención sugerida: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
+
+### 10.4 Nomenclatura
+- **Español** para dominio (`Equipo`, `Enfrentamiento`, `miembros`, `institucion`).
+- **Inglés** para infraestructura Spring (`@Controller`, `@Service`, `@Repository`).
+
+---
+
+## ⚠️ 11. Riesgos Conocidos y Deuda Técnica
+
+| Riesgo | Mitigación actual | Acción pendiente |
+|---|---|---|
+| SPOF en Proxmox | Mesh Tailscale/ZeroTier | Snapshot + VM respaldo + runbook |
+| Falla de internet del recinto | Cloudflare Tunnels | Modo kiosco LAN para pantallas |
+| Sin autenticación | — | RBAC (P0) |
+| Sin `EstadoEnfrentamiento` | Inferencia vía `idGanador` | Enum formal (P0) |
+| Sin entidad `Edicion` | — | Aislamiento por año (P0) |
+| Sin entidad `Pista` | — | Agenda multi-arena (P0) |
+| Spring Boot 3.2.7 fuera de soporte OSS hacia 2027 | — | Upgrade planificado (P1) |
+| Inconsistencia `idGanador` ↔ `idEquipoA/B` | Validación en servicio | Job de consistencia + checks |
+| Rotación anual de organizadores | Este documento | ADRs + runbook + video de despliegue |
+
+---
+
+## 📞 12. Contacto y Gobernanza
+
+- **Organización:** Rama Estudiantil IEEE — Universidad Nacional de Colombia sede Bogotá.
+- **Capítulo ejecutor:** CEIMTUN RAS (*Comité de Estudiantes de Ingeniería Mecatrónica — Robotics and Automation Society*).
+- **Edición objetivo:** 20.ª (2027).
+- **Canal de coordinación técnica:** definir con la dirección vigente de CEIMTUN RAS (Slack/Discord/WhatsApp del equipo).
+
+---
+
+## 🎯 13. Primeros Pasos para un Nuevo Contribuyente
+
+1. **Lee §5 completo** (Modelo de Datos y Reglas Críticas). Es el corazón del proyecto.
+2. **Levanta el backend en local** siguiendo §7. Verifica `/health` (si existe) o al menos que Tomcat arranque en `8081`.
+3. **Explora `CategoriaTipo`** en `entity/` — entiende el enum enriquecido.
+4. **Revisa `EquipoRepository`** — las dos consultas JPQL y el uso de `miembros`.
+5. **Identifica una tarea P0 del §9** y propón un plan de implementación en el canal del equipo **antes de codificar**.
+6. **Documenta tu decisión** en un ADR si toca arquitectura.
+7. **Abre PR pequeño y revisable** — la rotación de equipo hace que los PRs grandes se pierdan.
+
+> 💡 **Regla de oro:** ante la duda, **no renombres atributos de dominio ni conviertas UUIDs planos en relaciones JPA**. Pregunta primero. El costo de un malentendido en este modelo es alto.
+
+---
+
+*Última actualización: [16 de Noviembre 2026] — Mantener sincronizado con el avance real del repositorio.*
+```
