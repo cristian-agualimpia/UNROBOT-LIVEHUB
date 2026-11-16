@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email; // Para validación de email
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
@@ -25,6 +26,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter 
 public class Equipo {
 
     @Id
@@ -72,4 +74,12 @@ public class Equipo {
     @Column(name = "nombre_miembro")
     private List<String> miembros;
     
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean activo = true;
+
+    @Column(nullable = true)
+    private String motivoDescalificacion;
+
+    @Column(length = 1000, nullable = true)
+    private String descripcion; // Para guardar "Robot1: x, Robot2: y", notas, etc.
 }

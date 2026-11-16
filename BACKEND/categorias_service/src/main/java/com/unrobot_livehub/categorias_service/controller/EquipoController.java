@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.unrobot_livehub.categorias_service.dtos.EquipoDTO;
 import com.unrobot_livehub.categorias_service.dtos.EquipoRegistroDTO;
+import com.unrobot_livehub.categorias_service.entity.Equipo;
 import com.unrobot_livehub.categorias_service.service.EquipoService;
 
 import java.util.List;
@@ -60,5 +61,17 @@ public class EquipoController {
     ) {
         List<EquipoDTO> equipos = equipoService.getEquiposPorCategoria(categoriaTipo);
         return ResponseEntity.ok(equipos);
+    }
+    
+    /**
+     * GET /api/v1/equipos/buscar?q=fulanito&campo=nombre
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<List<Equipo>> buscarEquipos(
+            @RequestParam(required = false, defaultValue = "") String q,
+            @RequestParam(required = false, defaultValue = "todos") String campo) {
+        
+        List<Equipo> resultados = equipoService.buscarEquipos(q, campo);
+        return ResponseEntity.ok(resultados);
     }
 }

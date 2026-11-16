@@ -34,4 +34,6 @@ public interface EnfrentamientoRepository extends JpaRepository<Enfrentamiento, 
      * @return Una lista de todos los enfrentamientos de esa categoría.
      */
     List<Enfrentamiento> findByCategoria(CategoriaTipo categoria);
+
+    List<Enfrentamiento> findByIdEquipoAOrIdEquipoB(UUID idEquipoA, UUID idEquipoB);
 }

@@ -3,12 +3,18 @@ package com.unrobot_livehub.categorias_service.service;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.unrobot_livehub.categorias_service.dtos.EnfrentamientoDTO;
 import com.unrobot_livehub.categorias_service.dtos.EquipoDTO;
 import com.unrobot_livehub.categorias_service.dtos.EquipoRegistroDTO;
+import com.unrobot_livehub.categorias_service.dtos.EquipoUpdateDTO;
 import com.unrobot_livehub.categorias_service.entity.CategoriaTipo;
+import com.unrobot_livehub.categorias_service.entity.Enfrentamiento;
 import com.unrobot_livehub.categorias_service.entity.Equipo;
 import com.unrobot_livehub.categorias_service.repository.EquipoRepository;
+import com.unrobot_livehub.categorias_service.repository.EnfrentamientoRepository;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +25,9 @@ public class EquipoService {
 
     @Autowired
     private EquipoRepository equipoRepository;
+
+    @Autowired 
+    private EnfrentamientoRepository enfrentamientoRepository;
 
     /**
      * Registra un nuevo equipo.
@@ -124,5 +133,47 @@ public class EquipoService {
         // (Campos sensibles como email/teléfono NO se incluyen aquí)
         
         return dto;
+    }
+
+    @Transactional
+    public Equipo actualizarEquipo(UUID equipoId, EquipoUpdateDTO dto) {
+        Equipo equipo = equipoRepository.findById(equipoId)
+                .orElseThrow(() -> new EntityNotFoundException("Equipo no encontrado"));
+
+        equipo.setNombre(dto.getNombre().trim());
+        if (dto.getInstitucion() != null) equipo.setInstitucion(dto.getInstitucion().trim());
+        if (dto.getMiembros() != null) equipo.setMiembros(dto.getMiembros());
+        if (dto.getDescripcion() != null) equipo.setDescripcion(dto.getDescripcion());
+
+        // Lógica de cambio de categoría
+        if (dto.getCategoriaTipo() != null) {
+            CategoriaTipo nuevaCategoria = CategoriaTipo.valueOf(dto.getCategoriaTipo().toUpperCase());
+            if (!equipo.getCategoria().equals(nuevaCategoria)) {
+                // Verificar si ya tiene partidos en la categoría vieja
+                List<Enfrentamiento> partidos = enfrentamientoRepository.findByIdEquipoAOrIdEquipoB(equipoId, equipoId);
+                if (!partidos.isEmpty()) {
+                    throw new IllegalStateException("No puedes cambiar la categoría porque el equipo ya tiene enfrentamientos generados. Elimínalo de la llave primero.");
+                }
+                equipo.setCategoria(nuevaCategoria);
+            }
+        }
+        return equipoRepository.save(equipo);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Equipo> buscarEquipos(String q, String campo) {
+        if (q == null || q.trim().isEmpty()) return equipoRepository.findAll();
+        String query = q.trim();
+
+        if (campo == null || campo.equalsIgnoreCase("todos")) {
+            return equipoRepository.buscarPorCriterio(query);
+        }
+        
+        return switch (campo.toLowerCase()) {
+            case "nombre" -> equipoRepository.buscarSoloPorNombre(query);
+            case "institucion" -> equipoRepository.buscarSoloPorInstitucion(query);
+            // Puedes agregar más casos si sumas las queries al repositorio
+            default -> equipoRepository.buscarPorCriterio(query);
+        };
     }
 }
